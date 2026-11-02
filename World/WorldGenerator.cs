@@ -33,6 +33,21 @@ public static class WorldGenerator
             heights[x, z] = Math.Clamp((int)Math.Round(9 + (natural - 9) * blend), 5, World.Height - 6);
         }
 
+        // A single low-pass pass removes isolated one-cell spikes while keeping broad ridges.
+        var smoothed = new int[World.Size, World.Size];
+        for (int x = 0; x < World.Size; x++) for (int z = 0; z < World.Size; z++)
+        {
+            int total = heights[x, z] * 4, weight = 4;
+            foreach (var (dx, dz) in Adjacent)
+            {
+                int nx = x + dx, nz = z + dz;
+                if (nx < 0 || nx >= World.Size || nz < 0 || nz >= World.Size) continue;
+                total += heights[nx, nz]; weight++;
+            }
+            smoothed[x, z] = SpawnBlend(x, z) == 0 ? 9 : (int)Math.Round((double)total / weight);
+        }
+        heights = smoothed;
+
         for (int x = 0; x < World.Size; x++) for (int z = 0; z < World.Size; z++)
         {
             int top = heights[x, z], slope = Slope(heights, x, z);
@@ -48,7 +63,8 @@ public static class WorldGenerator
             {
                 Block b = y == 0 ? Block.Bedrock
                     : y == top ? surface
-                    : y >= top - 2 ? surface == Block.Sand ? Block.Sandstone : Block.Dirt
+                    : y >= top - 2 ? surface == Block.Sand ? Block.Sandstone
+                        : surface is Block.Stone or Block.Snow ? Block.Stone : Block.Dirt
                     : Rock(land, x, y, z);
                 // Preserve a roof, solid foundation under the clearing, and all bedrock.
                 if (y >= 2 && y <= top - 3 && SpawnBlend(x, z) > .12)

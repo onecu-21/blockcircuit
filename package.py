@@ -6,7 +6,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parent
 PREVIEWS = ("smoke-test.png", "palette-preview.png", "blocks-preview.png")
-OPTIONAL_PREVIEWS = ("engine-preview.png", "gameplay-preview.png")
+OPTIONAL_PREVIEWS = ("engine-preview.png", "gameplay-preview.png", "terrain-preview.png")
 REPORTS = (
     "benchmark-results.json",
     "engine-smoke-results.json",
@@ -48,7 +48,7 @@ def main():
         path for path in ROOT.rglob("*.cs")
         if not EXCLUDED_SOURCE_DIRS.intersection(path.relative_to(ROOT).parts[:-1])
     ) + sorted(ROOT.glob("*.csproj"))
-    docs = [ROOT / name for name in ("README.md", "ENGINE-NOTES.md", ".gitignore", "package.py", *PREVIEWS)]
+    docs = [ROOT / name for name in ("README.md", "ENGINE-NOTES.md", "GRAPHICS-TERRAIN.md", ".gitignore", "package.py", *PREVIEWS)]
     reports = [ROOT / name for name in REPORTS if (ROOT / name).is_file()]
     optional_previews = [ROOT / name for name in OPTIONAL_PREVIEWS if (ROOT / name).is_file()]
     require_files([
@@ -71,6 +71,7 @@ def main():
     # Always include the current documentation, even when publish leaves an older copy.
     windows["README.md"] = ROOT / "README.md"
     windows["ENGINE-NOTES.md"] = ROOT / "ENGINE-NOTES.md"
+    windows["GRAPHICS-TERRAIN.md"] = ROOT / "GRAPHICS-TERRAIN.md"
     windows.update({path.name: path for path in reports})
     windows.update({path.relative_to(ROOT).as_posix(): path for path in licenses})
     source = {

@@ -145,3 +145,8 @@ CPU 캐시 검사에서 300회 정지 갱신 동안 메시 생성은 0회였으�
 ## 패키징
 
 `package.py`는 `World/`, `Physics/`, `Rendering/`, `Circuits/`, `Tests/`, `Core/` 등을 포함해 하위 폴더의 C# 파일을 수집합니다. 생성물인 `bin/`, `obj/`, `dist/`는 소스 수집에서 제외합니다. 소스 ZIP에는 기존 미리보기 PNG 세 장과 존재하는 `engine-preview.png`, `gameplay-preview.png`를 포함합니다. 두 ZIP에 최신 README·이 문서·라이선스와 존재하는 `benchmark-results.json`, `engine-smoke-results.json`, `circuit-benchmark-results.json`, `gameplay-smoke-results.json`을 넣습니다. ZIP 파일은 무결성 검사 후 기존 배포본을 교체합니다.
+
+
+## 그래픽·자연 지형 후속 개발
+
+방향광·거리 안개·하늘과 시드 기반 자연 지형을 추가했습니다. F6에서 기존 월드를 백업한 후 새 지형을 만들 수 있습니다. 생성 방식, 검증 범위와 연구 자료는 [GRAPHICS-TERRAIN.md](GRAPHICS-TERRAIN.md)에 정리했습니다. 기존 134개에 지형·백업 검사 55개를 더한 189개 검사가 Windows/Linux CI에서 통과했으며, Linux 실제 OpenGL 검사도 통과했습니다.

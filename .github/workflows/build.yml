@@ -55,7 +55,7 @@ jobs:
       - name: Include documentation and native runtime
         shell: pwsh
         run: |
-          Copy-Item README.md,ENGINE-NOTES.md,LICENSE dist/windows/
+          Copy-Item README.md,ENGINE-NOTES.md,GRAPHICS-TERRAIN.md,LICENSE dist/windows/
           Copy-Item licenses dist/windows/licenses -Recurse
           $runtime = Join-Path $env:WINDIR 'System32/vcruntime140.dll'
           if (!(Test-Path $runtime)) { throw 'Windows VC runtime not found' }

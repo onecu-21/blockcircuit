@@ -8,6 +8,16 @@ C# / .NET 8 + Raylib로 만든 싱글플레이 3D 게임입니다. 광질, 블�
 
 추가 개발에서는 **고정 60틱 시뮬레이션, 변경된 회로망만 갱신하는 회로 계산, 실행 취소·다시 실행, 충돌이 적용되는 비행과 설정 화면**을 제공합니다. 퀵바 구성과 화면·마우스 설정도 다음 실행에 유지됩니다.
 
+## 그래픽·자연 지형 업데이트
+
+태양 방향에 따른 따뜻한 조명과 주변광, 카메라 각도를 따라가는 하늘·태양, 거리 안개를 적용했습니다. 잔디·흙·돌·잎의 과한 픽셀 잡음과 격자 이음새를 줄였습니다. **F1**로 HUD를 숨겨 풍경을 볼 수 있습니다.
+
+저장 파일이 없는 새 게임은 시드 **2026**의 자연 지형으로 시작합니다. 여러 크기의 노이즈와 좌표 왜곡, 능선 패턴을 조합해 높낮이를 만들고, 경사·습도에 따라 표면과 나무를 배치합니다. 지하에는 3차원 노이즈 기반 동굴이 생성됩니다. 자세한 구현과 참고 자료는 [GRAPHICS-TERRAIN.md](GRAPHICS-TERRAIN.md)에 있습니다.
+
+**F6 → NATURAL → 시드 입력 → CREATE NEW WORLD**로 새 지형을 만들 수 있습니다. 입력 칸은 **Ctrl+A**로 지우고 정수를 입력하거나 **RANDOM**으로 바꿉니다. 생성 전에 현재 월드를 저장 폴더의 `backups/`에 보관합니다. 기존 저장 월드는 원래 블록 상태로 불러오며 새 조명만 적용됩니다. 백업을 복원하려면 게임을 종료하고 백업 파일을 `world.json`으로 복사하세요.
+
+최신 검증 빌드는 저장소의 **Actions → 성공한 Build and validate 실행 → Artifacts → BlockCircuit-windows-x64**에서 받을 수 있습니다. 압축을 모두 풀고 `BlockCircuit.exe`를 실행합니다. Windows의 빌드와 그래픽 없는 검사는 자동 실행하며, OpenGL 그래픽 검사는 Linux 소프트웨어 렌더러에서 수행합니다.
+
 ## GitHub에서 소스 받기
 
 저장소 위쪽의 **Code → Download ZIP**을 누르면 전체 소스를 받을 수 있습니다. 압축을 푼 뒤 `BlockCircuit.csproj`가 있는 폴더에서 아래의 .NET 실행 명령을 사용하세요. `bin/`, `obj/`, `dist/`는 빌드할 때 생성됩니다.
@@ -31,6 +41,8 @@ C# / .NET 8 + Raylib로 만든 싱글플레이 3D 게임입니다. 광질, 블�
 | Ctrl+Z / Ctrl+Y | 마지막 편집 실행 취소 / 다시 실행 |
 | F | 비행 모드 켜기/끄기; 블록과 충돌 유지 |
 | 비행 중 Space / 왼쪽 Ctrl | 상승 / 하강 |
+| F1 | HUD 표시/숨기기 |
+| F6 | 시드와 지형 방식을 선택해 새 월드 생성; 현재 월드 자동 백업 |
 | F3 | 엔진 디버그 정보 표시/숨기기 |
 | F4 | 회로 디버그 정보와 신호 세기 표시/숨기기 |
 | F5 / F9 | 월드 저장 / 불러오기 |
@@ -71,7 +83,7 @@ C# / .NET 8 + Raylib로 만든 싱글플레이 3D 게임입니다. 광질, 블�
 
 ## 월드와 저장
 
-40×28×40 크기의 월드에 지형과 지하 통로가 생성됩니다. 새 월드에는 다양한 광석과 나무도 생성됩니다. 플레이어에게 중력과 블록 충돌이 적용되며, 바닥 기반암은 캘 수 없습니다.
+40×28×40 크기의 월드에 지형과 지하 통로가 생성됩니다. 새 월드는 시드에 따른 산지·평지·지하 동굴과 광석·나무가 생성됩니다. 플레이어에게 중력과 블록 충돌이 적용되며, 바닥 기반암은 캘 수 없습니다.
 
 저장 파일이 있으면 시작할 때 자동으로 불러옵니다. F9를 누르면 마지막 저장 상태로 돌아가고, 창을 닫으면 현재 상태를 자동 저장합니다.
 
@@ -109,11 +121,12 @@ dotnet build -c Release
 dotnet run -c Release -- --self-test
 dotnet run -c Release -- --engine-tests
 dotnet run -c Release -- --gameplay-tests
+dotnet run -c Release -- --terrain-tests
 dotnet run -c Release -- --benchmark
 dotnet run -c Release -- --circuit-benchmark
 ```
 
-기존 자동 검사 45개는 블록 목록, 전체 블록 설치·채굴, 인벤토리, 검색·분류, 회로 전파·감쇠·단선·복구, 받침 제거, 기반암, 레이캐스트, 지형 생성과 저장 복원을 확인합니다. `--engine-tests`의 검사 41개는 청크 경계와 변경 전파, 메시, DDA 레이캐스트와 저장 호환성을 확인합니다. `--gameplay-tests`의 검사 48개는 고정 틱, 이동·비행, 편집 이력, 회로와 설정을 확인하며, **총 134개 검사가 통과**했습니다. 실제 OpenGL 게임플레이 통합 검사 9개도 통과했습니다.
+기존 자동 검사 45개는 블록 목록, 전체 블록 설치·채굴, 인벤토리, 검색·분류, 회로 전파·감쇠·단선·복구, 받침 제거, 기반암, 레이캐스트, 지형 생성과 저장 복원을 확인합니다. `--engine-tests`의 검사 41개는 청크 경계와 변경 전파, 메시, DDA 레이캐스트와 저장 호환성을 확인합니다. `--gameplay-tests`의 검사 48개는 고정 틱, 이동·비행, 편집 이력, 회로와 설정을 확인하며, 기존 134개에 지형·백업 검사 55개를 더해 **총 189개 검사가 Windows와 Linux에서 통과**했습니다. 실제 OpenGL 게임플레이 통합 검사 9개도 통과했습니다.
 
 `--benchmark`는 CPU 메시 생성과 편집 부하를 `benchmark-results.json`에, `--circuit-benchmark`는 회로 계산 부하를 `circuit-benchmark-results.json`에 기록합니다. CPU 벤치마크와 실제 GPU의 FPS 측정은 구분합니다. 검사 결과와 측정 범위는 [엔진 노트](ENGINE-NOTES.md)에 있습니다.
 
@@ -123,6 +136,7 @@ dotnet run -c Release -- --circuit-benchmark
 dotnet run -c Release -- --smoke-test
 dotnet run -c Release -- --palette-smoke-test
 dotnet run -c Release -- --showcase-smoke-test
+dotnet run -c Release -- --terrain-smoke-test
 ```
 
 | 명령 | 출력 | 내용 |
