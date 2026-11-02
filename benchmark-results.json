@@ -1,0 +1,42 @@
+{
+  "SchemaVersion": 1,
+  "Scope": "CPU only: unmerged vs greedy chunk-mesh generation, managed allocations, and revision-cache simulation. No rendering/FPS/GPU measurements.",
+  "Runtime": ".NET 8.0.31",
+  "OS": "Debian GNU/Linux 13 (trixie)",
+  "TimestampUtc": "2026-10-08T09:25:20.7422794Z",
+  "SamplesPerAlgorithm": 5,
+  "Unmerged": {
+    "MedianMilliseconds": 6.5469,
+    "MedianAllocatedBytes": 4402008,
+    "ChunkCount": 10,
+    "Quads": 7768,
+    "Vertices": 46608
+  },
+  "Greedy": {
+    "MedianMilliseconds": 4.99,
+    "MedianAllocatedBytes": 1469760,
+    "ChunkCount": 10,
+    "Quads": 2432,
+    "Vertices": 14592
+  },
+  "QuadReductionPercent": 68.69,
+  "Cache": {
+    "InitialBuilds": 10,
+    "StaticFrames": 300,
+    "StaticFrameMeshBuilds": 0,
+    "StaticMilliseconds": 1.2374,
+    "StaticAllocatedBytes": 81600,
+    "InteriorEditBuilds": 1,
+    "BoundaryEditBuilds": 2
+  },
+  "Stress": {
+    "Seed": 72031,
+    "Edits": 2000,
+    "BatchSize": 100,
+    "VerifiedSnapshots": 20,
+    "MeshBuilds": 358,
+    "MillisecondsIncludingFreshVerification": 286.2075,
+    "AllocatedBytesIncludingFreshVerification": 152924104,
+    "CachedVsFreshExact": true
+  }
+}

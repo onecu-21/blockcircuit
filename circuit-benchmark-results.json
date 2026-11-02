@@ -1,0 +1,29 @@
+{
+  "SchemaVersion": 1,
+  "Scope": "CPU-only independent circuit workload. Incremental timings include World.Toggle edit-history processing; reference timings perform source flipping plus a full independent BFS. Visited counters describe each algorithm\u0027s traversed cells; not rendering/FPS/GPU measurements.",
+  "CounterDefinitions": {
+    "Incremental": "Distinct affected circuit-component cells, including terminal lamps and inactive sources",
+    "FullBfs": "Dequeued propagating source/wire cells across all active networks; terminal lamps are not queued"
+  },
+  "TimestampUtc": "2026-10-11T01:40:03.0334268Z",
+  "Runtime": ".NET 8.0.31",
+  "IndependentNetworks": 60,
+  "BlocksPerNetwork": 6,
+  "Samples": 5,
+  "TogglesPerSample": 200,
+  "Incremental": {
+    "MedianMilliseconds": 1.2566,
+    "MedianAllocatedBytes": 351240,
+    "TotalVisitedCells": 6000,
+    "UpdatedNetworks": 1000
+  },
+  "FullBfs": {
+    "MedianMilliseconds": 49.7496,
+    "MedianAllocatedBytes": 4792040,
+    "TotalVisitedCells": 297500,
+    "UpdatedNetworks": 0
+  },
+  "VisitedCellReductionPercent": 97.98,
+  "UnrelatedBlockEditNetworkUpdates": 0,
+  "FinalPowerMatchesReference": true
+}

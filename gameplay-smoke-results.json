@@ -1,0 +1,19 @@
+{
+  "Passed": true,
+  "Frames": 90,
+  "FixedTicks": 75,
+  "Checks": [
+    "fixed-tick placement consumes stock and records history",
+    "queued undo restores block and inventory",
+    "queued redo reapplies construction",
+    "fixed-tick lever updates lamp through cached circuit",
+    "undo switches circuit off",
+    "redo restores circuit power",
+    "flight rises with collision enabled",
+    "settings pause the fixed simulation without catchup",
+    "settings retain the chosen hotbar across reload"
+  ],
+  "NetworkCount": 1,
+  "UndoCount": 2,
+  "RedoCount": 0
+}
