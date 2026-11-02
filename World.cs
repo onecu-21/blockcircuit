@@ -12,6 +12,8 @@ public readonly record struct Cell(int X, int Y, int Z)
 public sealed class World
 {
     public const int Size = 40, Height = 28;
+    public int Seed { get; private set; } = 731;
+    public int TerrainVersion { get; private set; }
     public ChunkManager Chunks { get; private set; } = new();
     // Legacy flattened format is materialized only for saves and compatibility checks.
     // Mutating this snapshot never mutates the live world or bypasses mesh invalidation.
@@ -58,11 +60,20 @@ public sealed class World
         else Circuits.EnqueueSwitchChange(p);
     }
 
-    public World(bool generate = true)
+    public World(bool generate = true, int seed = 731, bool legacyTerrain = true)
     {
+        Seed = seed;
+        TerrainVersion = legacyTerrain ? 0 : WorldGenerator.Version;
         Circuits = new CircuitSystem(this);
         if (!generate) return;
-        var random = new Random(731);
+        if (!legacyTerrain)
+        {
+            WorldGenerator.Generate(this, seed);
+            CreateDemoCircuit();
+            RecomputePower();
+            return;
+        }
+        var random = new Random(seed);
         var surface = new int[Size, Size];
         for (int x = 0; x < Size; x++) for (int z = 0; z < Size; z++)
         {
@@ -78,10 +89,15 @@ public sealed class World
             }
         }
         GenerateTrees(surface, random);
+        CreateDemoCircuit();
+        RecomputePower();
+    }
+
+    private void CreateDemoCircuit()
+    {
         Set(new(18, 10, 18), Block.Lever);
         for (int x = 19; x <= 23; x++) Set(new(x, 10, 18), Block.Wire);
         Set(new(24, 10, 18), Block.Lamp);
-        RecomputePower();
     }
 
     private static Block RockAt(int x, int y, int z, Random random)
@@ -250,12 +266,17 @@ public sealed class World
     public (Cell Hit, Cell Previous)? Raycast(Vector3 origin, Vector3 direction, float range = 6)
         => VoxelRaycaster.Cast(Get, origin, direction, range);
 
-    public record SaveData(int Version, byte[]? Blocks, Cell[]? Switches, int[]? Inventory, Vector3 Position, float Yaw, float Pitch);
+    public record SaveData(int Version, byte[]? Blocks, Cell[]? Switches, int[]? Inventory, Vector3 Position, float Yaw, float Pitch)
+    {
+        public int Seed { get; init; } = 731;
+        public int TerrainVersion { get; init; }
+    }
     private static readonly JsonSerializerOptions JsonOptions = new() { IncludeFields = true };
 
     public void Save(string path, Vector3 position, float yaw, float pitch)
     {
-        var data = new SaveData(2, Blocks, Switches.ToArray(), Inventory, position, yaw, pitch);
+        var data = new SaveData(2, Blocks, Switches.ToArray(), Inventory, position, yaw, pitch)
+        { Seed = Seed, TerrainVersion = TerrainVersion };
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         File.WriteAllText(path + ".tmp", JsonSerializer.Serialize(data, JsonOptions));
         File.Move(path + ".tmp", path, true);
@@ -272,7 +293,7 @@ public sealed class World
         catch (JsonException e) { throw new InvalidDataException("Invalid save format", e); }
         int expectedInventory = data.Version == 1 ? 10 : BlockCatalog.Count;
         int maxBlock = data.Version == 1 ? 9 : BlockCatalog.Count - 1;
-        if (data.Version is not (1 or 2) || data.Blocks is null || data.Switches is null || data.Inventory is null ||
+        if (data.Version is not (1 or 2) || data.TerrainVersion is not (0 or 1) || data.Blocks is null || data.Switches is null || data.Inventory is null ||
             data.Blocks.Length != Size * Size * Height || data.Inventory.Length != expectedInventory ||
             data.Blocks.Any(b => b > maxBlock) || data.Inventory.Any(n => n < 0) ||
             data.Switches.Any(p => !Inside(p) || data.Blocks[Index(p)] != (byte)Block.Lever) ||
@@ -294,6 +315,8 @@ public sealed class World
             if (block != Block.Air) chunks.Set(cell, block);
         }
         Chunks = chunks;
+        Seed = data.Seed;
+        TerrainVersion = data.TerrainVersion;
         Inventory = inventory;
         Switches = switches;
         RecomputePower();

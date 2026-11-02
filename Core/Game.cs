@@ -5,7 +5,7 @@ using BlockCircuit;
 
 sealed partial class Game
 {
-    World world=new();
+    World world;
     readonly PlayerBody player=new();
     readonly GameClock clock=new(60,8);
     readonly GameSettings settings;
@@ -13,15 +13,16 @@ sealed partial class Game
     Vector3 feet {get=>player.Position;set=>player.Position=value;}
     float yaw=MathF.PI,pitch=-.18f;bool paused;
     BlockRenderer renderer=null!;
-    bool debugOverlay,circuitDebug;double rendererCpuMilliseconds;
-    Cell? mining;float mineTime;string message="TAB: block library  |  F: fly  |  F10: settings";float messageTime=8;
+    bool debugOverlay,circuitDebug,hudHidden;double rendererCpuMilliseconds;
+    Cell? mining;float mineTime;string message="F6: new terrain  |  TAB: blocks  |  F1: hide HUD";float messageTime=8;
     readonly string dataDirectory=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData,Environment.SpecialFolderOption.Create),"BlockCircuit");
     string savePath=>Path.Combine(dataDirectory,"world.json");
     string settingsPath=>Path.Combine(dataDirectory,"settings.json");
     string logPath=>Path.Combine(dataDirectory,"game.log");
     readonly Color ink=new(22,29,40,255),accent=new(87,231,182,255);
-    public Game(bool smoke=false)
+    public Game(bool smoke=false,bool terrainPreview=false)
     {
+        world=smoke&&!terrainPreview?new World():new World(seed:2026,legacyTerrain:false);
         settings=smoke?new GameSettings():GameSettings.Load(settingsPath);
         settings.ApplyToPalette(palette);
         feet=world.Spawn();previousFeet=feet;
@@ -30,7 +31,7 @@ sealed partial class Game
     }
     Vector3 Forward=>Vector3.Normalize(new(MathF.Sin(yaw)*MathF.Cos(pitch),MathF.Sin(pitch),MathF.Cos(yaw)*MathF.Cos(pitch)));
     void Notice(string text){message=text;messageTime=5;}
-    public void Run(bool smoke,bool paletteSmoke=false,bool showcaseSmoke=false,bool engineSmoke=false,bool gameplaySmoke=false)
+    public void Run(bool smoke,bool paletteSmoke=false,bool showcaseSmoke=false,bool engineSmoke=false,bool gameplaySmoke=false,bool terrainSmoke=false)
     {
         Raylib.SetConfigFlags(ConfigFlags.ResizableWindow|ConfigFlags.Msaa4xHint);
         Raylib.InitWindow(1280,800,"Block Circuit | build, mine, connect");
@@ -38,6 +39,7 @@ sealed partial class Game
         renderer=new BlockRenderer{DrawDistance=settings.DrawDistance};
         if(paletteSmoke)ToggleInventory();
         if(showcaseSmoke)SetupShowcase();
+        if(terrainSmoke){feet=new(34,24,36);previousFeet=feet;yaw=-2.42f;pitch=-.46f;hudHidden=true;}
         int frames=0;
         using var verifier=engineSmoke?new EngineSmokeVerifier():null;
         if(engineSmoke)debugOverlay=true;
@@ -47,23 +49,26 @@ sealed partial class Game
             {
                 verifier?.BeforeFrame(world,frames);
                 if(gameplaySmoke)AdvanceGameplaySmoke(frames);
+                if(Raylib.IsKeyPressed(KeyboardKey.F1))hudHidden=!hudHidden;
                 if(Raylib.IsKeyPressed(KeyboardKey.F3))debugOverlay=!debugOverlay;
                 if(Raylib.IsKeyPressed(KeyboardKey.F4))circuitDebug=!circuitDebug;
                 double frameSeconds=Raylib.GetFrameTime();if(!double.IsFinite(frameSeconds)||frameSeconds<0)frameSeconds=0;messageTime-=(float)Math.Min(frameSeconds,.25);
                 bool uiToggled=false;
                 if(Raylib.IsKeyPressed(KeyboardKey.Escape))
                 {
-                    if(settingsOpen)CloseSettings();
+                    if(newWorldOpen)CloseNewWorld();
+                    else if(settingsOpen)CloseSettings();
                     else if(inventoryOpen)ToggleInventory();
                     else {paused=!paused;if(paused)Raylib.EnableCursor();else Raylib.DisableCursor();}
                     uiToggled=true;
                 }
-                if(Raylib.IsKeyPressed(KeyboardKey.F10))
+                if(!newWorldOpen&&Raylib.IsKeyPressed(KeyboardKey.F10))
                 {if(settingsOpen)CloseSettings();else OpenSettings();uiToggled=true;}
-                if(!paused&&!settingsOpen&&Raylib.IsKeyPressed(KeyboardKey.Tab)){ToggleInventory();uiToggled=true;}
-                if(Raylib.IsKeyPressed(KeyboardKey.F5)&&!smoke)TrySave();
-                if(Raylib.IsKeyPressed(KeyboardKey.F9)&&!smoke){TryLoad();uiToggled=true;}
-                if(!paused&&!inventoryOpen&&!settingsOpen&&!showcaseSmoke&&!engineSmoke&&!gameplaySmoke&&!uiToggled)
+                if(!smoke&&Raylib.IsKeyPressed(KeyboardKey.F6)){if(newWorldOpen)CloseNewWorld();else OpenNewWorld();uiToggled=true;}
+                if(!paused&&!settingsOpen&&!newWorldOpen&&Raylib.IsKeyPressed(KeyboardKey.Tab)){ToggleInventory();uiToggled=true;}
+                if(Raylib.IsKeyPressed(KeyboardKey.F5)&&!smoke&&!newWorldOpen)TrySave();
+                if(Raylib.IsKeyPressed(KeyboardKey.F9)&&!smoke&&!newWorldOpen){TryLoad();uiToggled=true;}
+                if(!paused&&!inventoryOpen&&!settingsOpen&&!newWorldOpen&&!showcaseSmoke&&!engineSmoke&&!gameplaySmoke&&!terrainSmoke&&!uiToggled)
                 {
                     CaptureInput();
                     clock.Advance(frameSeconds,SimulationTick);
@@ -76,7 +81,7 @@ sealed partial class Game
                 int limit=engineSmoke?EngineSmokeVerifier.FrameCount:gameplaySmoke?90:30;
                 if(smoke&&frames==limit)
                 {
-                    Raylib.TakeScreenshot(gameplaySmoke?"gameplay-preview.png":engineSmoke?"engine-preview.png":paletteSmoke?"palette-preview.png":showcaseSmoke?"blocks-preview.png":"smoke-test.png");break;
+                    Raylib.TakeScreenshot(terrainSmoke?"terrain-preview.png":gameplaySmoke?"gameplay-preview.png":engineSmoke?"engine-preview.png":paletteSmoke?"palette-preview.png":showcaseSmoke?"blocks-preview.png":"smoke-test.png");break;
                 }
             }
             if(!smoke)TrySave();
@@ -120,13 +125,14 @@ sealed partial class Game
         int width=Raylib.GetScreenWidth(),height=Raylib.GetScreenHeight();
         var camera=new Camera3D{Position=eye,Target=eye+Forward,Up=Vector3.UnitY,FovY=settings.FieldOfView,Projection=CameraProjection.Perspective};
         var target=world.Raycast(eye,Forward);
-        Raylib.BeginDrawing();Raylib.ClearBackground(new Color(158,196,218,255));Raylib.BeginMode3D(camera);
+        Raylib.BeginDrawing();Raylib.ClearBackground(new Color(171,201,214,255));renderer.DrawSky(camera,width,height);Raylib.BeginMode3D(camera);
         long renderStart=Stopwatch.GetTimestamp();
         renderer.DrawWorld(world,camera,(float)width/height);
         rendererCpuMilliseconds=Stopwatch.GetElapsedTime(renderStart).TotalMilliseconds;
         if(circuitDebug)DrawCircuitLines(eye);
         if(target is {} hit)Raylib.DrawCubeWires(hit.Hit.Center,1.015f,1.015f,1.015f,Color.White);
         Raylib.EndMode3D();
+        if(hudHidden&&!paused&&!inventoryOpen&&!settingsOpen&&!newWorldOpen){Raylib.EndDrawing();return;}
         Raylib.DrawRectangle(20,20,305,86,ink);Raylib.DrawText("BLOCK / CIRCUIT",36,32,25,accent);
         Raylib.DrawText($"{BlockCatalog.Placeable.Count} BLOCKS  /  BUILD AND MINE",36,66,14,new Color(165,184,195,255));Raylib.DrawText($"{(int)feet.X}, {(int)feet.Y}, {(int)feet.Z}   |   {Raylib.GetFPS()} FPS",36,86,12,Color.White);
         Raylib.DrawRectangle(width-358,20,338,138,ink);
@@ -134,7 +140,7 @@ sealed partial class Game
         Raylib.DrawText("LMB mine  RMB place  E toggle lever",width-342,57,13,Color.White);
         Raylib.DrawText("TAB library  MMB pick  F5 save  F9 load",width-342,79,13,Color.White);
         Raylib.DrawText("F fly  CTRL+Z undo  CTRL+Y redo",width-342,101,13,accent);
-        Raylib.DrawText("F3 engine  F4 circuit  F10 settings",width-342,123,13,accent);
+        Raylib.DrawText("F1 HUD  F3/F4 debug  F6 world  F10 settings",width-342,123,12,accent);
         int cx=width/2,cy=height/2;Raylib.DrawLine(cx-7,cy,cx+7,cy,Color.White);Raylib.DrawLine(cx,cy-7,cx,cy+7,Color.White);
         if(target is {} t)
         {
@@ -164,6 +170,7 @@ sealed partial class Game
         if(circuitDebug)DrawCircuitPanel(target);
         if(inventoryOpen&&!settingsOpen)DrawPalette();
         if(settingsOpen)DrawSettingsPanel();
+        if(newWorldOpen)DrawNewWorldPanel();
         Raylib.EndDrawing();
     }
 }

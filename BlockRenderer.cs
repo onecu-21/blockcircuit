@@ -10,6 +10,9 @@ public sealed class BlockRenderer : IDisposable
     const int Tile = 16, Columns = 32, AtlasSize = Tile * Columns;
     readonly Texture2D atlas;
     readonly Shader shader;
+    readonly int viewPositionLocation, fogRangeLocation;
+    public static Color HorizonColor => new(171, 201, 214, 255);
+    public static Vector3 SunDirection { get; } = Vector3.Normalize(new(-.45f, .82f, .30f));
     Material material;
     readonly Dictionary<ChunkCoord, CachedChunk> cache = [];
     readonly List<ChunkCoord> removed = [];
@@ -60,10 +63,13 @@ public sealed class BlockRenderer : IDisposable
         in vec4 vertexColor;
         uniform mat4 mvp;
         out vec2 voxelUV;
+        out vec3 worldPosition;
         flat out vec3 tileAndShade;
         void main()
         {
             voxelUV = vertexTexCoord;
+            // Chunk vertices are already in world space and DrawMesh uses identity.
+            worldPosition = vertexPosition;
             tileAndShade = vertexColor.rgb;
             gl_Position = mvp * vec4(vertexPosition, 1.0);
         }
@@ -71,8 +77,11 @@ public sealed class BlockRenderer : IDisposable
     const string FragmentShader = """
         #version 330
         in vec2 voxelUV;
+        in vec3 worldPosition;
         flat in vec3 tileAndShade;
         uniform sampler2D texture0;
+        uniform vec3 viewPosition;
+        uniform vec2 fogRange;
         out vec4 finalColor;
         void main()
         {
@@ -80,7 +89,39 @@ public sealed class BlockRenderer : IDisposable
             vec2 uv = (tile * 16.0 + 0.01 + fract(voxelUV) * 15.98) / 512.0;
             vec4 texel = texture(texture0, uv);
             if (texel.a < 0.01) discard;
-            finalColor = vec4(texel.rgb * tileAndShade.b, texel.a);
+
+            // Flat normals from world-space derivatives need no extra vertex buffer.
+            // Evaluate derivatives outside conditional branches for defined GLSL behavior.
+            vec3 normal = normalize(cross(dFdx(worldPosition), dFdy(worldPosition)));
+            if (!gl_FrontFacing) normal = -normal;
+            vec3 sunlight = normalize(vec3(-0.45, 0.82, 0.30));
+            float diffuse = max(dot(normal, sunlight), 0.0);
+            float sky = normal.y * 0.5 + 0.5;
+            vec3 ambient = mix(vec3(0.31, 0.34, 0.42), vec3(0.58, 0.65, 0.72), sky);
+            vec3 illumination = ambient + vec3(1.0, 0.90, 0.72) * diffuse * 0.53;
+
+            // Stable block IDs: only existing emissive materials bypass face lighting.
+            float materialId = floor((tile.y * 32.0 + tile.x) / 4.0);
+            float variant = mod(tile.y * 32.0 + tile.x, 4.0);
+            bool emissive = (materialId == 8.0 && variant == 3.0) ||
+                materialId == 108.0 || materialId == 109.0 || materialId == 113.0;
+            vec3 cell = floor(worldPosition - normal * 0.001);
+            float grain = fract(sin(dot(cell, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+            vec3 lit = texel.rgb * illumination * (0.985 + 0.03 * grain);
+            if (emissive) lit = texel.rgb * 1.08;
+
+            if (texel.a < 0.99)
+            {
+                vec3 viewDirection = normalize(viewPosition - worldPosition);
+                vec3 halfDirection = normalize(sunlight + viewDirection);
+                float highlight = pow(max(dot(normal, halfDirection), 0.0), 48.0);
+                lit += vec3(1.0, 0.95, 0.84) * highlight * 0.24;
+            }
+
+            // Smooth atmospheric perspective matches DrawSky's horizon color.
+            float haze = smoothstep(fogRange.x, fogRange.y, length(viewPosition - worldPosition));
+            vec3 horizon = vec3(171.0, 201.0, 214.0) / 255.0;
+            finalColor = vec4(mix(clamp(lit, 0.0, 1.0), horizon, haze), texel.a);
         }
         """;
 
@@ -116,6 +157,10 @@ public sealed class BlockRenderer : IDisposable
             shader = Raylib.LoadShaderFromMemory(VertexShader, FragmentShader);
             if (!Raylib.IsShaderReady(shader) || shader.Id == Rlgl.GetShaderIdDefault())
                 throw new InvalidOperationException("Could not load the chunk atlas shader (OpenGL 3.3 required).");
+            viewPositionLocation = Raylib.GetShaderLocation(shader, "viewPosition");
+            fogRangeLocation = Raylib.GetShaderLocation(shader, "fogRange");
+            if (viewPositionLocation < 0 || fogRangeLocation < 0)
+                throw new InvalidOperationException("Chunk lighting shader uniforms were not linked.");
             material = Raylib.LoadMaterialDefault();
             material.Shader = shader;
             Raylib.SetMaterialTexture(ref material, MaterialMapIndex.Albedo, atlas);
@@ -132,6 +177,7 @@ public sealed class BlockRenderer : IDisposable
     public void DrawWorld(World world, Camera3D camera, float aspect)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
+        UpdateAtmosphere(camera);
         if (!ReferenceEquals(source, world.Chunks))
         {
             ClearCache();
@@ -212,6 +258,47 @@ public sealed class BlockRenderer : IDisposable
             }
             finally { Rlgl.EnableDepthMask(); }
         }
+    }
+
+    /// <summary>Draw before BeginMode3D so voxel geometry naturally covers the sky and sun.</summary>
+    public void DrawSky(Camera3D camera, int width, int height)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        if (width <= 0 || height <= 0) return;
+        var forward = Vector3.Normalize(camera.Target - camera.Position);
+        float pitch = MathF.Asin(Math.Clamp(forward.Y, -1f, 1f));
+        float tangent = MathF.Tan(camera.FovY * MathF.PI / 360f);
+        var zenith = new Color(71, 133, 182, 255);
+        // Project vertical view angles, keeping the horizon stable while looking up/down.
+        Color SkyAt(int y)
+        {
+            float elevation = pitch + MathF.Atan((1f - 2f * y / height) * tangent);
+            float amount = MathF.Pow(Math.Clamp(MathF.Sin(elevation), 0f, 1f), .65f);
+            return Mix(HorizonColor, zenith, amount);
+        }
+        const int band = 8;
+        for (int y = 0; y < height; y += band)
+        {
+            int bottom = Math.Min(height, y + band);
+            Raylib.DrawRectangleGradientV(0, y, width, bottom - y, SkyAt(y), SkyAt(bottom));
+        }
+
+        if (Vector3.Dot(forward, SunDirection) <= .02f) return;
+        var sun = Raylib.GetWorldToScreen(camera.Position + SunDirection * 1000f, camera);
+        float radius = height * .009f / tangent;
+        if (sun.X < -radius * 6 || sun.X > width + radius * 6 ||
+            sun.Y < -radius * 6 || sun.Y > height + radius * 6) return;
+        Raylib.DrawCircleGradient((int)sun.X, (int)sun.Y, radius * 5,
+            new Color(255, 224, 155, 65), new Color(255, 224, 155, 0));
+        Raylib.DrawCircleV(sun, radius, new Color(255, 242, 204, 255));
+    }
+
+    unsafe void UpdateAtmosphere(Camera3D camera)
+    {
+        var eye = camera.Position;
+        var fog = new Vector2(drawDistance * .34f, drawDistance * .94f);
+        Raylib.SetShaderValue(shader, viewPositionLocation, &eye, ShaderUniformDataType.Vec3);
+        Raylib.SetShaderValue(shader, fogRangeLocation, &fog, ShaderUniformDataType.Vec2);
     }
 
     void Update(ChunkMesh mesh, CpuMeshData data)
@@ -300,27 +387,29 @@ public sealed class BlockRenderer : IDisposable
     {
         var tint = Rgb(info.Tint);
         int hash = Hash(x,y,(int)info.Id*7+face);
-        float noise = .91f+(hash%23)*.008f;
+        float noise = .95f+(hash%17)*.006f;
+        float patches = (Hash(x/4,y/4,(int)info.Id*17)%17)/16f;
         var c = Shade(tint,noise);
         switch (info.Pattern)
         {
             case BlockPattern.Grass:
                 if (face==1)
                 {
-                    c=Shade(tint,.8f+(hash%31)*.012f);
-                    if ((x+y*3)%13==0) c=Mix(c,new Color(197,208,95,255),.35f);
+                    c=Shade(tint,.88f+patches*.18f+(hash%9)*.006f);
+                    if (hash%11==0) c=Mix(c,new Color(174,188,93,255),.22f);
+                    if (hash%17==0 && y<15) c=Shade(c,.88f);
                 }
                 else if (face==2 || y>2+Hash(x,0,9)%3)
-                    c=Shade(new Color(132,91,57,255),.80f+(hash%30)*.014f);
+                    c=Shade(new Color(132,91,57,255),.88f+patches*.17f+(hash%7)*.009f);
                 else c=Shade(tint,noise*.86f);
                 break;
             case BlockPattern.Soil:
-                c=Shade(tint,.77f+(hash%35)*.014f);
-                if (hash%19==0) c=Shade(tint,.63f);
+                c=Shade(tint,.87f+patches*.19f+(hash%11)*.007f);
+                if (hash%29==0) c=Mix(c,new Color(99,91,77,255),.32f);
                 break;
             case BlockPattern.Stone:
-                c=Shade(tint,.84f+(hash%22)*.014f);
-                if ((y+Hash(x/5,0,17)%3)%7==0 && x%5<4) c=Shade(c,.80f);
+                c=Shade(tint,.90f+patches*.13f+(hash%9)*.008f);
+                if ((y+Hash(x/5,0,17)%3)%7==0 && x%5<4) c=Shade(c,.91f);
                 if (name.Contains("smooth")) c=Shade(tint,.96f+(hash%7)*.012f);
                 if (name.Contains("obsidian")) c=Mix(c,new Color(82,49,115,255),hash%6==0?.7f:.08f);
                 break;
@@ -352,9 +441,9 @@ public sealed class BlockRenderer : IDisposable
                 else if (hash%11==0) c=Shade(c,.86f);
                 break;
             case BlockPattern.Leaves:
-                c=Shade(tint,.66f+Hash(x/3,y/3,(int)info.Id)%7*.09f);
-                if (x%3==0 || y%3==0) c=Shade(c,.81f);
-                if (hash%13==0) c=Shade(tint,1.24f);
+                c=Shade(tint,.80f+Hash(x/3,y/3,(int)info.Id)%7*.045f);
+                if ((x+y)%5==0) c=Shade(c,.91f);
+                if (hash%17==0) c=Mix(c,new Color(193,206,118,255),.18f);
                 break;
             case BlockPattern.Bricks:
                 bool mortar=y%5==0 || (x+((y/5)%2)*4)%8==0;
@@ -524,7 +613,8 @@ public sealed class BlockRenderer : IDisposable
             if (x is >=3 and <=12 && y is >=7 and <=12) c=new Color(33,38,43,255);
             if (x is >=3 and <=12 && y is 3 or 4) c=new Color(64,69,77,255);
         }
-        if (info.Pattern is not (BlockPattern.Metal or BlockPattern.Lamp or BlockPattern.Wire or BlockPattern.Lever))
+        if (info.Pattern is not (BlockPattern.Metal or BlockPattern.Lamp or BlockPattern.Wire or BlockPattern.Lever or
+            BlockPattern.Grass or BlockPattern.Soil or BlockPattern.Stone or BlockPattern.Leaves))
         {
             if (x==0 || y==0) c=Shade(c,1.025f);
             if (x==15 || y==15) c=Shade(c,.91f);
