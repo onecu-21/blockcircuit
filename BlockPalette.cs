@@ -6,7 +6,8 @@ namespace BlockCircuit
 {
     public sealed class BlockPaletteModel
     {
-        public Block[] Hotbar { get; } = [Block.Grass, Block.Dirt, Block.Stone, Block.Coal, Block.Iron, Block.Wire, Block.Lever, Block.Lamp];
+        public const int HotbarCount = 9;
+        public Block[] Hotbar { get; } = [Block.Grass, Block.Dirt, Block.Stone, Block.Coal, Block.Iron, Block.Wire, Block.Lever, Block.Lamp, Block.Glass];
         public int SelectedSlot { get; set; }
         public BlockCategory? Category { get; set; }
         public string Query { get; set; } = "";
@@ -69,7 +70,7 @@ sealed partial class Game
             if(Raylib.IsKeyPressed(KeyboardKey.Backspace)&&palette.Query.Length>0){palette.Query=palette.Query[..^1];palettePage=0;}
             if(Raylib.IsKeyPressed(KeyboardKey.Enter))searchFocused=false;
         }
-        else for(int i=0;i<8;i++)if(Raylib.IsKeyPressed((KeyboardKey)((int)KeyboardKey.One+i)))palette.SelectedSlot=i;
+        else for(int i=0;i<palette.Hotbar.Length;i++)if(Raylib.IsKeyPressed((KeyboardKey)((int)KeyboardKey.One+i)))palette.SelectedSlot=i;
         if(Button(new(x+23,y+79,140,32),"All blocks",palette.Category==null)){palette.Category=null;palettePage=0;}
         int categoryY=gridY;
         foreach(var category in Enum.GetValues<BlockCategory>())
@@ -109,9 +110,9 @@ sealed partial class Game
         if(Button(new(gridX+gridW-70,footer,70,30),"NEXT >"))palettePage=Math.Min(pages-1,palettePage+1);
         string pageText=$"{palettePage+1} / {pages}   |   {items.Length} blocks   |   scroll to browse";
         DrawTextFit(pageText,gridX+90,footer+9,14,gridW-180,muted);
-        string detail=hovered is {} info?$"{info.Name}  /  {info.Category}  /  click to assign":$"Select slot 1-8, then click any block.   TAB / ESC to return.";
+        string detail=hovered is {} info?$"{info.Name}  /  {info.Category}  /  click to assign":$"Select slot 1-{palette.Hotbar.Length}, then click any block.   {(searchFocused?"ESC":"E / ESC")} to return.";
         DrawTextFit(detail,gridX,footer+40,14,gridW,accent);
-        for(int i=0;i<8;i++)
+        for(int i=0;i<palette.Hotbar.Length;i++)
         {
             int bx=gridX+i*55,by=y+h-39;var slot=new Rectangle(bx,by,49,30);
             Raylib.DrawRectangleRec(slot,palette.SelectedSlot==i?accent:tileColor);

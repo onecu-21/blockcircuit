@@ -6,12 +6,13 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parent
 PREVIEWS = ("smoke-test.png", "palette-preview.png", "blocks-preview.png")
-OPTIONAL_PREVIEWS = ("engine-preview.png", "gameplay-preview.png", "terrain-preview.png")
+OPTIONAL_PREVIEWS = ("engine-preview.png", "gameplay-preview.png", "terrain-preview.png", "controls-preview.png")
 REPORTS = (
     "benchmark-results.json",
     "engine-smoke-results.json",
     "circuit-benchmark-results.json",
     "gameplay-smoke-results.json",
+    "controls-smoke-results.json",
 )
 EXCLUDED_SOURCE_DIRS = {"bin", "obj", "dist"}
 

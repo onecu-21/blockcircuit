@@ -47,7 +47,7 @@ public sealed class GameSettings
     public int SelectedSlot
     {
         get => selectedSlot;
-        set => selectedSlot = Math.Clamp(value, 0, 7);
+        set => selectedSlot = Math.Clamp(value, 0, BlockPaletteModel.HotbarCount - 1);
     }
     [JsonIgnore]
     public string? LoadWarning { get; private set; }
@@ -95,7 +95,7 @@ public sealed class GameSettings
     {
         ArgumentNullException.ThrowIfNull(palette);
         hotbar = ValidatedHotbar(hotbar);
-        Array.Copy(hotbar, palette.Hotbar, 8);
+        Array.Copy(hotbar, palette.Hotbar, palette.Hotbar.Length);
         palette.SelectedSlot = selectedSlot;
     }
 
@@ -119,13 +119,14 @@ public sealed class GameSettings
     }
 
     static Block[] DefaultHotbar() =>
-        [Block.Grass, Block.Dirt, Block.Stone, Block.Coal, Block.Iron, Block.Wire, Block.Lever, Block.Lamp];
+        [Block.Grass, Block.Dirt, Block.Stone, Block.Coal, Block.Iron, Block.Wire, Block.Lever, Block.Lamp, Block.Glass];
 
     static Block[] ValidatedHotbar(Block[]? value)
     {
         var valid = DefaultHotbar();
-        if (value is not { Length: 8 }) return valid;
-        for (int slot = 0; slot < valid.Length; slot++)
+        // Existing settings have eight slots. Keep their selections and append the new default ninth slot.
+        if (value is null || value.Length is not (8 or BlockPaletteModel.HotbarCount)) return valid;
+        for (int slot = 0; slot < value.Length; slot++)
             if (BlockCatalog.IsValid(value[slot]) && value[slot] is not (Block.Air or Block.Bedrock))
                 valid[slot] = value[slot];
         return valid;

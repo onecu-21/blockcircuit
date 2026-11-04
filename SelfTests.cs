@@ -142,7 +142,7 @@ static class SelfTests
         Check(terrain.Blocks.SequenceEqual(new World().Blocks), "terrain generation remains deterministic");
 
         var palette = new BlockPaletteModel();
-        Check(palette.Filtered().Length == BlockCatalog.Placeable.Count && palette.Hotbar.Length == 8, "library exposes full catalog with eight hotbar slots");
+        Check(palette.Filtered().Length == BlockCatalog.Placeable.Count && palette.Hotbar.Length == 9 && palette.Hotbar[8] == Block.Glass, "library exposes full catalog with nine hotbar slots");
         palette.Category = BlockCategory.Glass;
         palette.Query = "  bLuE  ";
         var blueGlass = palette.Filtered();

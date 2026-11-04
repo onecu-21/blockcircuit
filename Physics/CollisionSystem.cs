@@ -13,39 +13,52 @@ public static class CollisionSystem
     public const float MaximumFeetY = World.Height + 8;
     const double TouchTolerance = .00001;
 
-    public static bool Collides(World world, Vector3 feet)
+    public static bool Collides(World world, Vector3 feet, float bodyHeight = BodyHeight)
     {
         ArgumentNullException.ThrowIfNull(world);
         RequireFinite(feet, nameof(feet));
+        RequireBodyHeight(bodyHeight);
         if (feet.X < BoundaryMargin || feet.Z < BoundaryMargin ||
             feet.X > World.Size - BoundaryMargin || feet.Z > World.Size - BoundaryMargin || feet.Y > MaximumFeetY)
             return true;
         return AnySolid(world,
             feet.X - (double)HalfWidth, feet.Y, feet.Z - (double)HalfWidth,
-            feet.X + (double)HalfWidth, feet.Y + (double)BodyHeight, feet.Z + (double)HalfWidth);
+            feet.X + (double)HalfWidth, feet.Y + (double)bodyHeight, feet.Z + (double)HalfWidth);
     }
 
-    public static bool OverlapsPlayer(Cell block, Vector3 feet)
+    public static bool OverlapsPlayer(Cell block, Vector3 feet, float bodyHeight = BodyHeight)
     {
         RequireFinite(feet, nameof(feet));
+        RequireBodyHeight(bodyHeight);
         return block.X + 1d > feet.X - HalfWidth + TouchTolerance && block.X < feet.X + HalfWidth - TouchTolerance &&
                block.Z + 1d > feet.Z - HalfWidth + TouchTolerance && block.Z < feet.Z + HalfWidth - TouchTolerance &&
-               block.Y + 1d > feet.Y + TouchTolerance && block.Y < feet.Y + BodyHeight - TouchTolerance;
+               block.Y + 1d > feet.Y + TouchTolerance && block.Y < feet.Y + bodyHeight - TouchTolerance;
+    }
+
+    /// <summary>Only solid blocks directly below the feet count as support; walls and ceilings do not.</summary>
+    public static bool HasSupport(World world, Vector3 feet)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        RequireFinite(feet, nameof(feet));
+        return AnySolid(world,
+            feet.X - (double)HalfWidth, feet.Y - .002, feet.Z - (double)HalfWidth,
+            feet.X + (double)HalfWidth, feet.Y, feet.Z + (double)HalfWidth);
     }
 
     /// <summary>Mutates feet to its nearest collision-safe position. X/Z walls and the flight ceiling are solid.</summary>
-    public static CollisionResult Move(World world, ref Vector3 feet, Vector3 delta)
+    public static CollisionResult Move(World world, ref Vector3 feet, Vector3 delta, float bodyHeight = BodyHeight)
     {
         ArgumentNullException.ThrowIfNull(world);
         RequireFinite(feet, nameof(feet));
         RequireFinite(delta, nameof(delta));
-        bool hitX = MoveAxis(world, ref feet, delta.X, 0);
-        bool hitZ = MoveAxis(world, ref feet, delta.Z, 2);
-        bool hitY = MoveAxis(world, ref feet, delta.Y, 1);
+        RequireBodyHeight(bodyHeight);
+        bool hitX = MoveAxis(world, ref feet, delta.X, 0, bodyHeight);
+        bool hitZ = MoveAxis(world, ref feet, delta.Z, 2, bodyHeight);
+        bool hitY = MoveAxis(world, ref feet, delta.Y, 1, bodyHeight);
         return new(hitX, hitY, hitZ, hitY && delta.Y < 0);
     }
 
-    static bool MoveAxis(World world, ref Vector3 feet, float movement, int axis)
+    static bool MoveAxis(World world, ref Vector3 feet, float movement, int axis, float bodyHeight)
     {
         if (movement == 0) return false;
         double origin = Axis(feet, axis);
@@ -53,10 +66,10 @@ public static class CollisionSystem
         double target = axis == 1 ? Math.Min(requested, MaximumFeetY)
             : Math.Clamp(requested, BoundaryMargin, World.Size - BoundaryMargin);
         double lowerOffset = axis == 1 ? 0 : -HalfWidth;
-        double upperOffset = axis == 1 ? BodyHeight : HalfWidth;
+        double upperOffset = axis == 1 ? bodyHeight : HalfWidth;
         double startMin = origin + lowerOffset, startMax = origin + upperOffset;
         double minX = feet.X - (double)HalfWidth, maxX = feet.X + (double)HalfWidth;
-        double minY = feet.Y, maxY = feet.Y + (double)BodyHeight;
+        double minY = feet.Y, maxY = feet.Y + (double)bodyHeight;
         double minZ = feet.Z - (double)HalfWidth, maxZ = feet.Z + (double)HalfWidth;
         double sweepMin = Math.Min(origin, target) + lowerOffset;
         double sweepMax = Math.Max(origin, target) + upperOffset;
@@ -110,5 +123,11 @@ public static class CollisionSystem
     {
         if (!float.IsFinite(value.X) || !float.IsFinite(value.Y) || !float.IsFinite(value.Z))
             throw new ArgumentOutOfRangeException(parameter, "A finite vector is required.");
+    }
+
+    static void RequireBodyHeight(float height)
+    {
+        if (!float.IsFinite(height) || height <= 0)
+            throw new ArgumentOutOfRangeException(nameof(height), "A positive finite body height is required.");
     }
 }

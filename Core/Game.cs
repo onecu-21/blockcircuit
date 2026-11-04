@@ -14,7 +14,7 @@ sealed partial class Game
     float yaw=MathF.PI,pitch=-.18f;bool paused;
     BlockRenderer renderer=null!;
     bool debugOverlay,circuitDebug,hudHidden;double rendererCpuMilliseconds;
-    Cell? mining;float mineTime;string message="F6: new terrain  |  TAB: blocks  |  F1: hide HUD";float messageTime=8;
+    Cell? mining;float mineTime;string message="E: inventory  |  Double SPACE: fly  |  F5: perspective";float messageTime=8;
     readonly string dataDirectory=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData,Environment.SpecialFolderOption.Create),"BlockCircuit");
     string savePath=>Path.Combine(dataDirectory,"world.json");
     string settingsPath=>Path.Combine(dataDirectory,"settings.json");
@@ -31,7 +31,7 @@ sealed partial class Game
     }
     Vector3 Forward=>Vector3.Normalize(new(MathF.Sin(yaw)*MathF.Cos(pitch),MathF.Sin(pitch),MathF.Cos(yaw)*MathF.Cos(pitch)));
     void Notice(string text){message=text;messageTime=5;}
-    public void Run(bool smoke,bool paletteSmoke=false,bool showcaseSmoke=false,bool engineSmoke=false,bool gameplaySmoke=false,bool terrainSmoke=false)
+    public void Run(bool smoke,bool paletteSmoke=false,bool showcaseSmoke=false,bool engineSmoke=false,bool gameplaySmoke=false,bool terrainSmoke=false,bool controlsSmoke=false)
     {
         Raylib.SetConfigFlags(ConfigFlags.ResizableWindow|ConfigFlags.Msaa4xHint);
         Raylib.InitWindow(1280,800,"Block Circuit | build, mine, connect");
@@ -49,11 +49,14 @@ sealed partial class Game
             {
                 verifier?.BeforeFrame(world,frames);
                 if(gameplaySmoke)AdvanceGameplaySmoke(frames);
+                if(controlsSmoke)AdvanceControlsSmoke(frames);
                 if(Raylib.IsKeyPressed(KeyboardKey.F1))hudHidden=!hudHidden;
                 if(Raylib.IsKeyPressed(KeyboardKey.F3))debugOverlay=!debugOverlay;
                 if(Raylib.IsKeyPressed(KeyboardKey.F4))circuitDebug=!circuitDebug;
                 double frameSeconds=Raylib.GetFrameTime();if(!double.IsFinite(frameSeconds)||frameSeconds<0)frameSeconds=0;messageTime-=(float)Math.Min(frameSeconds,.25);
                 bool uiToggled=false;
+                bool control=Raylib.IsKeyDown(KeyboardKey.LeftControl)||Raylib.IsKeyDown(KeyboardKey.RightControl);
+                bool screenshotRequested=!smoke&&Raylib.IsKeyPressed(KeyboardKey.F2);
                 if(Raylib.IsKeyPressed(KeyboardKey.Escape))
                 {
                     if(newWorldOpen)CloseNewWorld();
@@ -65,10 +68,14 @@ sealed partial class Game
                 if(!newWorldOpen&&Raylib.IsKeyPressed(KeyboardKey.F10))
                 {if(settingsOpen)CloseSettings();else OpenSettings();uiToggled=true;}
                 if(!smoke&&Raylib.IsKeyPressed(KeyboardKey.F6)){if(newWorldOpen)CloseNewWorld();else OpenNewWorld();uiToggled=true;}
-                if(!paused&&!settingsOpen&&!newWorldOpen&&Raylib.IsKeyPressed(KeyboardKey.Tab)){ToggleInventory();uiToggled=true;}
-                if(Raylib.IsKeyPressed(KeyboardKey.F5)&&!smoke&&!newWorldOpen)TrySave();
-                if(Raylib.IsKeyPressed(KeyboardKey.F9)&&!smoke&&!newWorldOpen){TryLoad();uiToggled=true;}
-                if(!paused&&!inventoryOpen&&!settingsOpen&&!newWorldOpen&&!showcaseSmoke&&!engineSmoke&&!gameplaySmoke&&!terrainSmoke&&!uiToggled)
+                if(!paused&&!settingsOpen&&!newWorldOpen&&(!inventoryOpen||!searchFocused)&&Raylib.IsKeyPressed(KeyboardKey.E)){ToggleInventory();uiToggled=true;}
+                if(!inventoryOpen&&!settingsOpen&&!newWorldOpen&&Raylib.IsKeyPressed(KeyboardKey.F5)){CyclePerspective();uiToggled=true;}
+                if(!smoke&&!inventoryOpen&&!settingsOpen&&!newWorldOpen&&control)
+                {
+                    if(Raylib.IsKeyPressed(KeyboardKey.S)){TrySave();uiToggled=true;}
+                    if(Raylib.IsKeyPressed(KeyboardKey.O)){TryLoad();uiToggled=true;}
+                }
+                if(!paused&&!inventoryOpen&&!settingsOpen&&!newWorldOpen&&!showcaseSmoke&&!engineSmoke&&!gameplaySmoke&&!terrainSmoke&&!controlsSmoke&&!uiToggled)
                 {
                     CaptureInput();
                     clock.Advance(frameSeconds,SimulationTick);
@@ -76,12 +83,13 @@ sealed partial class Game
                 else if(gameplaySmoke&&!settingsOpen){clock.Advance(1d/60,SimulationTick);CheckGameplaySmoke(frames);}
                 else {ResetSimulation();if(gameplaySmoke)CheckGameplaySmoke(frames);}
                 Render(CurrentEye());
+                if(screenshotRequested)TryScreenshot();
                 verifier?.AfterFrame(world,renderer,frames);
                 frames++;
-                int limit=engineSmoke?EngineSmokeVerifier.FrameCount:gameplaySmoke?90:30;
+                int limit=engineSmoke?EngineSmokeVerifier.FrameCount:gameplaySmoke?90:controlsSmoke?60:30;
                 if(smoke&&frames==limit)
                 {
-                    Raylib.TakeScreenshot(terrainSmoke?"terrain-preview.png":gameplaySmoke?"gameplay-preview.png":engineSmoke?"engine-preview.png":paletteSmoke?"palette-preview.png":showcaseSmoke?"blocks-preview.png":"smoke-test.png");break;
+                    Raylib.TakeScreenshot(controlsSmoke?"controls-preview.png":terrainSmoke?"terrain-preview.png":gameplaySmoke?"gameplay-preview.png":engineSmoke?"engine-preview.png":paletteSmoke?"palette-preview.png":showcaseSmoke?"blocks-preview.png":"smoke-test.png");break;
                 }
             }
             if(!smoke)TrySave();
@@ -89,6 +97,7 @@ sealed partial class Game
         finally{renderer.Dispose();Raylib.CloseWindow();}
         verifier?.Complete(renderer);
         if(gameplaySmoke)FinishGameplaySmoke();
+        if(controlsSmoke)FinishControlsSmoke();
     }
     static float MineDuration(Block b)=>BlockCatalog.Get(b).Hardness;
     void TrySave()
@@ -123,24 +132,26 @@ sealed partial class Game
     void Render(Vector3 eye)
     {
         int width=Raylib.GetScreenWidth(),height=Raylib.GetScreenHeight();
-        var camera=new Camera3D{Position=eye,Target=eye+Forward,Up=Vector3.UnitY,FovY=settings.FieldOfView,Projection=CameraProjection.Perspective};
+        var camera=BuildCamera(eye);
         var target=world.Raycast(eye,Forward);
         Raylib.BeginDrawing();Raylib.ClearBackground(new Color(171,201,214,255));renderer.DrawSky(camera,width,height);Raylib.BeginMode3D(camera);
         long renderStart=Stopwatch.GetTimestamp();
         renderer.DrawWorld(world,camera,(float)width/height);
+        DrawPlayerAvatar(Vector3.Lerp(previousFeet,feet,clock.Alpha));
         rendererCpuMilliseconds=Stopwatch.GetElapsedTime(renderStart).TotalMilliseconds;
         if(circuitDebug)DrawCircuitLines(eye);
-        if(target is {} hit)Raylib.DrawCubeWires(hit.Hit.Center,1.015f,1.015f,1.015f,Color.White);
+        if(!hudHidden&&target is {} hit)Raylib.DrawCubeWires(hit.Hit.Center,1.015f,1.015f,1.015f,Color.White);
         Raylib.EndMode3D();
         if(hudHidden&&!paused&&!inventoryOpen&&!settingsOpen&&!newWorldOpen){Raylib.EndDrawing();return;}
         Raylib.DrawRectangle(20,20,305,86,ink);Raylib.DrawText("BLOCK / CIRCUIT",36,32,25,accent);
         Raylib.DrawText($"{BlockCatalog.Placeable.Count} BLOCKS  /  BUILD AND MINE",36,66,14,new Color(165,184,195,255));Raylib.DrawText($"{(int)feet.X}, {(int)feet.Y}, {(int)feet.Z}   |   {Raylib.GetFPS()} FPS",36,86,12,Color.White);
-        Raylib.DrawRectangle(width-358,20,338,138,ink);
-        Raylib.DrawText("WASD move  SPACE jump  SHIFT sprint",width-342,35,13,Color.White);
-        Raylib.DrawText("LMB mine  RMB place  E toggle lever",width-342,57,13,Color.White);
-        Raylib.DrawText("TAB library  MMB pick  F5 save  F9 load",width-342,79,13,Color.White);
-        Raylib.DrawText("F fly  CTRL+Z undo  CTRL+Y redo",width-342,101,13,accent);
-        Raylib.DrawText("F1 HUD  F3/F4 debug  F6 world  F10 settings",width-342,123,12,accent);
+        Raylib.DrawRectangle(width-382,20,362,160,ink);
+        Raylib.DrawText("WASD move  CTRL sprint  SHIFT sneak",width-366,35,13,Color.White);
+        Raylib.DrawText("SPACE jump  double SPACE fly",width-366,57,13,Color.White);
+        Raylib.DrawText("LMB mine  RMB use/place  E inventory",width-366,79,13,Color.White);
+        Raylib.DrawText("1-9 slots  MMB pick  F5 perspective",width-366,101,13,accent);
+        Raylib.DrawText("F1 HUD  F2 screenshot  F3/F4 debug",width-366,123,13,accent);
+        Raylib.DrawText("CTRL+S/O save/load  F6 world  F10 settings",width-366,145,12,accent);
         int cx=width/2,cy=height/2;Raylib.DrawLine(cx-7,cy,cx+7,cy,Color.White);Raylib.DrawLine(cx,cy-7,cx,cy+7,Color.White);
         if(target is {} t)
         {
@@ -148,8 +159,8 @@ sealed partial class Game
             Raylib.DrawText(text,cx-Raylib.MeasureText(text,18)/2,cy+28,18,ink);
             if(mining!=null){Raylib.DrawRectangle(cx-60,cy+52,120,6,ink);Raylib.DrawRectangle(cx-60,cy+52,(int)(120*Math.Clamp(mineTime/MineDuration(b),0,1)),6,accent);}
         }
-        int start=cx-8*82/2;
-        for(int i=0;i<8;i++)
+        int start=cx-palette.Hotbar.Length*82/2;
+        for(int i=0;i<palette.Hotbar.Length;i++)
         {
             int x=start+i*82,y=height-92;var b=palette.Hotbar[i];
             Raylib.DrawRectangle(x,y,76,72,i==palette.SelectedSlot?accent:ink);Raylib.DrawRectangle(x+3,y+3,70,66,ink);
@@ -164,7 +175,7 @@ sealed partial class Game
         if(paused)
         {
             Raylib.DrawRectangle(0,0,width,height,new Color(12,20,30,170));Raylib.DrawText("PAUSED",cx-83,cy-65,40,accent);
-            string text="ESC resume  |  F10 settings  |  F5 save  |  F9 load";Raylib.DrawText(text,cx-Raylib.MeasureText(text,20)/2,cy,20,Color.White);
+            string text="ESC resume  |  F10 settings  |  CTRL+S save  |  CTRL+O load";Raylib.DrawText(text,cx-Raylib.MeasureText(text,20)/2,cy,20,Color.White);
         }
         if(debugOverlay)DrawEngineOverlay();
         if(circuitDebug)DrawCircuitPanel(target);

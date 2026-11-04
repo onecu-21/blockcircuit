@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Text.Json;
 
 namespace BlockCircuit;
 
@@ -316,26 +317,37 @@ static class GameplayTests
             var palette = new BlockPaletteModel();
             invalid.ApplyToPalette(palette);
             check(invalid.TargetFps == 60 && invalid.FieldOfView == 100 && invalid.MouseSensitivity == .001f &&
-                  invalid.DrawDistance == 128 && palette.SelectedSlot == 7 && palette.Hotbar[0] == Block.Grass &&
+                  invalid.DrawDistance == 128 && palette.SelectedSlot == 8 && palette.Hotbar[0] == Block.Grass &&
                   palette.Hotbar[1] == Block.Dirt && palette.Hotbar[2] == Block.Stone,
                 "settings clamp controls and replace non-placeable or invalid hotbar slots");
             File.WriteAllText(path, "{\"Hotbar\":[3,4]}");
             invalid = GameSettings.Load(path);
-            check(invalid.Hotbar.Length == 8 && invalid.Hotbar.SequenceEqual(new BlockPaletteModel().Hotbar),
-                "a hotbar with the wrong length falls back to all eight default slots");
+            check(invalid.Hotbar.Length == 9 && invalid.Hotbar.SequenceEqual(new BlockPaletteModel().Hotbar),
+                "a hotbar with the wrong length falls back to all nine default slots");
+
+            Block[] oldHotbar = [Block.CherryLog, Block.BlueGlass, Block.DiamondBlock, Block.RedWool, Block.StoneBricks, Block.Wire, Block.Lever, Block.Lamp];
+            File.WriteAllText(path, JsonSerializer.Serialize(new { Version = 1, Hotbar = oldHotbar, SelectedSlot = 7 }));
+            var migrated = GameSettings.Load(path);
+            check(migrated.Hotbar.Length == 9 && migrated.Hotbar.Take(8).SequenceEqual(oldHotbar) &&
+                  migrated.Hotbar[8] == Block.Glass && migrated.SelectedSlot == 7 && migrated.LoadWarning is null,
+                "eight-slot settings preserve custom blocks and selection while adding slot nine");
+            migrated.Save(path);
+            var migratedAgain = GameSettings.Load(path);
+            check(migratedAgain.Hotbar.SequenceEqual(migrated.Hotbar) && migratedAgain.SelectedSlot == 7,
+                "migrated hotbars remain stable after saving and reloading");
 
             var settings = new GameSettings { TargetFps = 144, FieldOfView = 86, MouseSensitivity = .004f, DrawDistance = 96 };
-            Block[] hotbar = [Block.CherryLog, Block.BlueGlass, Block.DiamondBlock, Block.RedWool, Block.StoneBricks, Block.Wire, Block.Lever, Block.Lamp];
+            Block[] hotbar = [Block.CherryLog, Block.BlueGlass, Block.DiamondBlock, Block.RedWool, Block.StoneBricks, Block.Wire, Block.Lever, Block.Lamp, Block.AmethystBlock];
             hotbar.CopyTo(palette.Hotbar, 0);
-            palette.SelectedSlot = 4;
+            palette.SelectedSlot = 8;
             settings.CapturePalette(palette);
             settings.Save(path);
             var restored = GameSettings.Load(path);
             var restoredPalette = new BlockPaletteModel();
             restored.ApplyToPalette(restoredPalette);
             check(restored.TargetFps == 144 && restored.FieldOfView == 86 && restored.MouseSensitivity == .004f && restored.DrawDistance == 96 &&
-                  restoredPalette.SelectedSlot == 4 && restoredPalette.Hotbar.SequenceEqual(hotbar),
-                "graphics controls and all eight custom hotbar slots survive settings save/load");
+                  restoredPalette.SelectedSlot == 8 && restoredPalette.Hotbar.SequenceEqual(hotbar),
+                "graphics controls and all nine custom hotbar slots including the selected ninth slot survive settings save/load");
             restoredPalette.Hotbar[0] = Block.Stone;
             check(restored.Hotbar[0] == Block.CherryLog, "applying settings does not share mutable hotbar storage with the live palette");
         }
