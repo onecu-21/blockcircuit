@@ -72,11 +72,12 @@ public static class SneakTests
             "a long sneak step cannot skip an unsupported gap to another platform");
 
         body = new PlayerBody { Position = new(10.95f, 1, 10.5f) };
-        body.Step(platform, Vector3.UnitX, 4, true, 0, .1f, sneak: true);
+        // Acceleration from rest needs five 20 Hz steps to clear the ledge.
+        body.Step(platform, Vector3.UnitX, 4, true, 0, .25f, sneak: true);
         Check(body.Position.X > 11.29f && body.Position.Y > 1 && !body.Grounded,
             "jumping deliberately leaves a ledge even while holding Shift");
         body = new PlayerBody { Position = new(10.95f, 1, 10.5f) };
-        body.Step(platform, Vector3.UnitX, 4, false, 0, .1f);
+        body.Step(platform, Vector3.UnitX, 4, false, 0, .2f);
         Check(body.Position.X > 11.29f && body.Position.Y < 1,
             "normal walking can still walk off an edge");
 

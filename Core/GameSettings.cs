@@ -22,7 +22,7 @@ public sealed class GameSettings
     public int TargetFps
     {
         get => targetFps;
-        set => targetFps = value is 0 or 30 or 60 or 120 or 144 ? value : 60;
+        set => targetFps = value is 0 or 30 or 60 or 120 or 144 or 240 ? value : 60;
     }
     public float FieldOfView
     {

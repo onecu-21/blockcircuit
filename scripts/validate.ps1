@@ -9,14 +9,16 @@ $repo = Split-Path $PSScriptRoot -Parent
 $project = Join-Path $repo 'BlockCircuit.csproj'
 $out = [IO.Path]::GetFullPath((Join-Path $repo $OutputDirectory))
 New-Item -ItemType Directory -Force -Path $out | Out-Null
-& dotnet build $project -c $Configuration
+$buildOutput = [IO.Path]::GetFullPath((Join-Path $repo "artifacts/build/$Configuration")) + [IO.Path]::DirectorySeparatorChar
+$buildProperty = "-p:OutputPath=$buildOutput"
+& dotnet build $project -c $Configuration $buildProperty
 if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
-$target = & dotnet msbuild $project -nologo "-p:Configuration=$Configuration" -getProperty:TargetPath
+$target = & dotnet msbuild $project -nologo "-p:Configuration=$Configuration" $buildProperty -getProperty:TargetPath
 if ($LASTEXITCODE -ne 0) { throw 'Cannot resolve assembly path' }
 $assembly = ($target | Out-String).Trim()
 if (!(Test-Path -LiteralPath $assembly)) { throw "Missing assembly: $assembly" }
 $suites = @('self-test', 'engine-tests', 'gameplay-tests', 'terrain-tests', 'controls-tests')
-if ($Benchmarks) { $suites += @('benchmark', 'circuit-benchmark') }
+if ($Benchmarks) { $suites += @('benchmark', 'circuit-benchmark', 'physics-benchmark') }
 if ($Graphics) { $suites += @('smoke-test', 'palette-smoke-test', 'showcase-smoke-test', 'terrain-smoke-test', 'engine-smoke-test', 'gameplay-smoke-test', 'controls-smoke-test') }
 Push-Location $out
 try {

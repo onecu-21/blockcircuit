@@ -19,23 +19,24 @@ sealed partial class Game
             case 40:actions.Enqueue(new(ActionKind.Toggle,new(18,10,18)));break;
             case 45:actions.Enqueue(new(ActionKind.Undo,default));break;
             case 50:actions.Enqueue(new(ActionKind.Redo,default));break;
-            case 55:player.Flying=true;flightStartY=feet.Y;moveDirection=Vector3.UnitX;flyVertical=1;break;
+            case 55:simulationInput.QueueFlightToggle();flightStartY=feet.Y;moveDirection=Vector3.UnitX;flyVertical=1;break;
             case 70:moveDirection=Vector3.Zero;flyVertical=0;break;
             case 75:OpenSettings();break;
         }
+        simulationInput.Sample(moveDirection,moveSpeed,false,false,flyVertical,false);
     }
     void CheckGameplaySmoke(int frame)
     {
         switch(frame)
         {
             case 20:GameplayRequire(world.Get(new(20,10,20))==Block.RedWool&&world.Inventory[(int)Block.RedWool]==gameplayStock-1&&world.UndoCount==1,"fixed-tick placement consumes stock and records history");break;
-            case 25:GameplayRequire(world.Get(new(20,10,20))==Block.Air&&world.Inventory[(int)Block.RedWool]==gameplayStock&&world.RedoCount==1,"queued undo restores block and inventory");break;
-            case 30:GameplayRequire(world.Get(new(20,10,20))==Block.RedWool&&world.Inventory[(int)Block.RedWool]==gameplayStock-1,"queued redo reapplies construction");break;
-            case 40:GameplayRequire(world.Power.GetValueOrDefault(new(24,10,18))>0,"fixed-tick lever updates lamp through cached circuit");break;
-            case 45:GameplayRequire(world.Power.GetValueOrDefault(new(24,10,18))==0,"undo switches circuit off");break;
+            case 26:GameplayRequire(world.Get(new(20,10,20))==Block.Air&&world.Inventory[(int)Block.RedWool]==gameplayStock&&world.RedoCount==1,"queued undo restores block and inventory");break;
+            case 32:GameplayRequire(world.Get(new(20,10,20))==Block.RedWool&&world.Inventory[(int)Block.RedWool]==gameplayStock-1,"queued redo reapplies construction");break;
+            case 41:GameplayRequire(world.Power.GetValueOrDefault(new(24,10,18))>0,"fixed-tick lever updates lamp through cached circuit");break;
+            case 47:GameplayRequire(world.Power.GetValueOrDefault(new(24,10,18))==0,"undo switches circuit off");break;
             case 50:GameplayRequire(world.Power.GetValueOrDefault(new(24,10,18))>0,"redo restores circuit power");break;
             case 70:GameplayRequire(feet.Y>flightStartY+.5f&&!CollisionSystem.Collides(world,feet),"flight rises with collision enabled");break;
-            case 89:GameplayRequire(settingsOpen&&clock.TotalTicks==75,"settings pause the fixed simulation without catchup");break;
+            case 89:GameplayRequire(settingsOpen&&clock.TotalTicks==25,"settings pause the fixed simulation without catchup");break;
         }
     }
     void GameplayRequire(bool condition,string text)

@@ -5,6 +5,7 @@ if(args.Contains("--engine-tests")){EngineTests.Run();return;}
 if(args.Contains("--gameplay-tests")){GameplayTests.Run();return;}
 if(args.Contains("--terrain-tests")){TerrainTests.Run();WorldSessionTests.Run();return;}
 if(args.Contains("--controls-tests")){ControlsTests.Run();SneakTests.Run();CameraTests.Run();return;}
+if(args.Contains("--physics-benchmark")){PhysicsBenchmark.Run();return;}
 if(args.Contains("--benchmark")){EngineBenchmark.Run();return;}
 if(args.Contains("--circuit-benchmark")){CircuitBenchmark.Run();return;}
 bool smoke=args.Any(a=>a.EndsWith("smoke-test"));

@@ -1,0 +1,41 @@
+PASS: one Space press remains a jump
+PASS: two Space presses toggle flight
+PASS: third Space press does not toggle flight again
+PASS: slow Space presses do not toggle flight
+PASS: opening a menu clears pending double taps
+PASS: one W press walks
+PASS: double W starts sprinting
+PASS: sprint continues while forward is held
+PASS: sneaking cancels sprinting
+PASS: Ctrl starts forward sprinting
+PASS: Ctrl without forward does not sprint
+PASS: right click uses levers unless Shift bypasses interaction
+PASS: mouse wheel wraps all nine hotbar slots
+Controls tests: 13 passed.
+PASS: Shift lowers the collision body and camera while grounded
+PASS: releasing Shift stands up when there is headroom
+PASS: releasing Shift cannot expand the player into a low ceiling
+PASS: placement overlap checks respect the current crouched height
+PASS: standing resumes once the low ceiling is removed
+PASS: swept horizontal collision uses the lower crouched body
+PASS: upward movement stops the crouched head at the ceiling
+PASS: sneaking approaches an edge without falling
+PASS: diagonal sneaking cannot slip off a platform corner
+PASS: a long sneak step cannot skip an unsupported gap to another platform
+PASS: jumping deliberately leaves a ledge even while holding Shift
+PASS: normal walking can still walk off an edge
+PASS: a nearby wall does not count as ground support
+PASS: Shift descends in flight without switching to a crouched body
+PASS: sneaking in the air does not suspend gravity
+Sneak tests: 15 passed.
+PASS: third-person camera uses its full distance in open space
+PASS: zero direction and zero distance leave the camera at the player eye
+PASS: the camera stops before a solid wall with lens clearance
+PASS: camera distance is independent of direction-vector magnitude
+PASS: solid transparent blocks also obstruct the camera
+PASS: thin non-colliding circuit pieces do not block the camera
+PASS: swept camera volume catches diagonal voxel corners
+PASS: front and rear camera directions both respect walls
+PASS: camera remains inside the finite world's horizontal bounds
+PASS: invalid camera distances are rejected
+Camera tests passed: 10

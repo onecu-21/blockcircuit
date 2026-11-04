@@ -19,6 +19,7 @@ static class GameplayTests
         TestHistory(Check);
         TestClockAndPhysics(Check);
         TestSettings(Check);
+        PhysicsFoundationTests.Run();
         Console.WriteLine($"All {count} gameplay checks passed (headless).");
     }
 

@@ -1,0 +1,42 @@
+PASS: chunk/local coordinates use floor division and roundtrip across negative boundaries
+PASS: writing air to absent chunks does not allocate storage
+PASS: sparse chunks store blocks at negative world coordinates
+PASS: unchanged block writes preserve the cached revision
+PASS: removing the last block releases a sparse chunk
+PASS: interior edits invalidate only their owner chunk
+PASS: all six boundary edits invalidate their existing neighboring chunk
+PASS: corner edits invalidate the three face neighbors without diagonal chunks
+PASS: no-op boundary writes do not dirty any neighboring chunk
+PASS: removing a whole chunk invalidates all six existing face neighbors
+PASS: recreating a chunk cannot accidentally reuse a stale cached revision
+PASS: chunk-backed terrain generation is deterministic
+PASS: chunk-backed terrain matches the original flat-world snapshot byte for byte
+PASS: legacy serialization snapshots cannot bypass chunk invalidation
+PASS: DDA hits all six axis directions and returns the face-adjacent placement voxel
+PASS: DDA normalizes direction, includes exact range endpoint, and rejects a hit beyond range
+PASS: DDA reports an occupied origin voxel immediately
+PASS: DDA steps correctly from an exact integer face in the negative direction
+PASS: DDA traverses negative empty coordinates before entering the bounded world
+PASS: DDA rejects zero/invalid directions, invalid origins, and nonpositive/nonfinite ranges
+PASS: DDA corner ties follow deterministic X/Y/Z order with an adjacent placement voxel
+PASS: DDA tie policy checks intermediate face-adjacent cells
+PASS: DDA handles nearly axis-aligned rays without fixed-step gaps
+PASS: greedy meshing reduces an isolated solid chunk to six quads
+PASS: greedy quads preserve every oriented unit face, material, light, and tiled UV extent
+PASS: meshing reads adjacent chunks and removes hidden seam faces
+PASS: breaking a neighboring boundary block exposes exactly one owner face
+PASS: checkerboard materials do not merge across texture boundaries
+PASS: greedy keys preserve face texture variants, direction, lamp state, light, and transparency
+PASS: opaque/transparent geometry is separated and small circuit models stay outside voxel meshes
+PASS: greedy and unmerged meshes cover identical faces with identical material/light data
+PASS: power changes across chunk seams invalidate affected circuit visuals without dirtying unrelated chunks
+PASS: seeded mixed-block scenes match an independent exposed-face oracle in every chunk
+PASS: absent chunks produce no geometry or circuits
+PASS: frustum keeps a chunk directly ahead
+PASS: frustum rejects a chunk behind the camera
+PASS: frustum rejects chunks beyond horizontal and vertical side planes
+PASS: frustum rejects chunks beyond far plane
+PASS: frustum conservatively keeps boxes intersecting the camera or frustum edge
+PASS: legacy v2 save snapshots reload into exactly the required sparse chunks
+PASS: loading an empty world removes previously populated chunks
+All 41 engine checks passed (headless).

@@ -7,7 +7,7 @@ sealed partial class Game
 {
     World world;
     readonly PlayerBody player=new();
-    readonly GameClock clock=new(60,8);
+    readonly GameClock clock=new();
     readonly GameSettings settings;
     Vector3 previousFeet;
     Vector3 feet {get=>player.Position;set=>player.Position=value;}

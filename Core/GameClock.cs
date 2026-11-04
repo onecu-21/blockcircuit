@@ -3,12 +3,13 @@ namespace BlockCircuit;
 /// <summary>Accumulates wall time into bounded, deterministic simulation steps.</summary>
 public sealed class GameClock
 {
+    public const int DefaultTickRate = PhysicsProfile.TickRate;
     public const double MaximumFrameSeconds = .25;
     readonly double stepSeconds;
     readonly int maxCatchUpSteps;
     double accumulator;
 
-    public GameClock(int tickRate = 60, int maxCatchUpSteps = 8)
+    public GameClock(int tickRate = DefaultTickRate, int maxCatchUpSteps = 8)
     {
         if (tickRate <= 0) throw new ArgumentOutOfRangeException(nameof(tickRate));
         if (maxCatchUpSteps <= 0) throw new ArgumentOutOfRangeException(nameof(maxCatchUpSteps));

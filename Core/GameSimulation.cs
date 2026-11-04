@@ -8,11 +8,12 @@ sealed partial class Game
     readonly record struct PlayerAction(ActionKind Kind,Cell Cell,Block Block=Block.Air);
     readonly Queue<PlayerAction> actions=[];
     readonly PlayerControls controls=new();
-    Vector3 moveDirection;float moveSpeed=4,flyVertical;bool jumpPending,jumpHeld,mineHeld,sneakHeld;
+    readonly SimulationInput simulationInput=new();
+    Vector3 moveDirection;float moveSpeed=PhysicsProfile.WalkSpeed,flyVertical;bool jumpHeld,mineHeld,sneakHeld;
     Vector3 CurrentEye()=>Vector3.Lerp(previousFeet,feet,clock.Alpha)+new Vector3(0,player.EyeHeight,0);
     void ResetSimulation()
     {
-        clock.ResetAccumulator();previousFeet=feet;actions.Clear();jumpPending=jumpHeld=mineHeld=sneakHeld=false;controls.Reset();
+        clock.ResetAccumulator();previousFeet=feet;actions.Clear();jumpHeld=mineHeld=sneakHeld=false;simulationInput.Reset();controls.Reset();
         mining=null;mineTime=0;
     }
     void CaptureInput()
@@ -26,17 +27,17 @@ sealed partial class Game
         if(controls.Sample(Raylib.GetTime(),jumpPressed,Raylib.IsKeyPressed(KeyboardKey.W),forwardHeld,
             Raylib.IsKeyDown(KeyboardKey.LeftControl),sneakHeld))
         {
-            player.Flying=!player.Flying;jumpPending=false;jumpPressed=false;
-            Notice(player.Flying?"Flight ON: SPACE up, SHIFT down. Double SPACE to land.":"Flight OFF: gravity enabled.");
+            simulationInput.QueueFlightToggle();jumpPressed=false;
+            Notice((player.Flying^simulationInput.FlightTogglePending)?"Flight ON: SPACE up, SHIFT down. Double SPACE to land.":"Flight OFF: gravity enabled.");
         }
         var forward=new Vector3(MathF.Sin(yaw),0,MathF.Cos(yaw));var right=new Vector3(-forward.Z,0,forward.X);
         moveDirection=Vector3.Zero;
         if(Raylib.IsKeyDown(KeyboardKey.W))moveDirection+=forward;if(Raylib.IsKeyDown(KeyboardKey.S))moveDirection-=forward;
         if(Raylib.IsKeyDown(KeyboardKey.D))moveDirection+=right;if(Raylib.IsKeyDown(KeyboardKey.A))moveDirection-=right;
-        moveSpeed=(sneakHeld||player.Crouching)&&!player.Flying?1.3f:controls.Sprinting?6:4;
+        moveSpeed=(sneakHeld||player.Crouching)&&!(player.Flying^simulationInput.FlightTogglePending)?PhysicsProfile.SneakSpeed:controls.Sprinting?PhysicsProfile.SprintSpeed:PhysicsProfile.WalkSpeed;
         bool control=Raylib.IsKeyDown(KeyboardKey.LeftControl)||Raylib.IsKeyDown(KeyboardKey.RightControl);
         flyVertical=(jumpHeld?1:0)-(sneakHeld?1:0);
-        jumpPending|=jumpPressed;
+        simulationInput.Sample(moveDirection,moveSpeed,jumpPressed,jumpHeld,flyVertical,sneakHeld);
         mineHeld=Raylib.IsMouseButtonDown(MouseButton.Left);
         for(int i=0;i<palette.Hotbar.Length;i++)if(Raylib.IsKeyPressed((KeyboardKey)((int)KeyboardKey.One+i)))palette.SelectedSlot=i;
         palette.SelectedSlot=PlayerControls.ScrollSlot(palette.SelectedSlot,Raylib.GetMouseWheelMove(),palette.Hotbar.Length);
@@ -56,7 +57,9 @@ sealed partial class Game
     void SimulationTick(float dt)
     {
         previousFeet=feet;
-        player.Step(world,moveDirection,moveSpeed,jumpPending||jumpHeld,flyVertical,dt,sneakHeld);jumpPending=false;
+        var input=simulationInput.Consume();
+        if(input.ToggleFlight)player.Flying=!player.Flying;
+        player.Step(world,input.Direction,input.Speed,input.Jump&&!input.ToggleFlight,input.FlyVertical,dt,input.Sneak);
         if(Vector3.DistanceSquared(previousFeet,feet)>4)previousFeet=feet;
         while(actions.TryDequeue(out var action))
         {

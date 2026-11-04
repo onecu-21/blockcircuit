@@ -38,8 +38,8 @@ sealed partial class Game
 
         Raylib.DrawText("FRAME RATE LIMIT", left, y + 107, 17, Color.White);
         DrawTextFit("Lower limits use less power. Higher limits can make movement smoother.", left, y + 132, 14, contentWidth, muted);
-        int[] limits = [30, 60, 120, 144, 0];
-        int gap = 8, buttonWidth = (contentWidth - gap * 4) / 5;
+        int[] limits = [30, 60, 120, 144, 240, 0];
+        int gap = 8, buttonWidth = (contentWidth - gap * (limits.Length - 1)) / limits.Length;
         for (int i = 0; i < limits.Length; i++)
         {
             int limit = limits[i];
