@@ -1,0 +1,51 @@
+PASS: block edits queue circuit events before processing
+PASS: one event batch builds two independent cached circuit networks
+PASS: toggling one network updates only that network and preserves remote power
+PASS: incremental power matches the independent full BFS oracle
+PASS: unrelated non-circuit edits perform no circuit network updates
+PASS: an unchanged circuit tick does not invalidate chunk meshes
+PASS: batched topology edits with unchanged final power do not dirty meshes again during circuit evaluation
+PASS: removing a wire splits connectivity and leaves independent networks powered
+PASS: replacing a wire merges cached networks and restores attenuated signal
+PASS: lamps terminate signals and inactive levers do not relay power
+PASS: multiple active sources preserve the strongest signal
+PASS: 200 seeded edit batches match full BFS after splits, merges, replacements, and source changes
+PASS: rebuilding the connection cache preserves incremental circuit results
+PASS: successful block placement creates one undo record
+PASS: undo placement restores blocks and exact inventory
+PASS: redo placement reapplies blocks and exact inventory debit
+PASS: mining a placed block succeeds
+PASS: mining undo/redo restores blocks and inventory without duplication
+PASS: failed edits do not enter undo history
+PASS: support mining and automatic lever reclamation form one history transaction
+PASS: undo/redo support removal restores dependent blocks, lever state, circuit power, and inventory
+PASS: lever toggles are undoable without touching inventory
+PASS: rejecting a later restored block cancels the entire undo atomically
+PASS: a rejected undo stays available for a later valid attempt
+PASS: collision rejection leaves redo state and inventory untouched
+PASS: a new edit after undo discards the abandoned redo branch
+PASS: edit history retains at most 128 transactions
+PASS: bounded history discards only the oldest edits and maintains coherent state
+PASS: explicit history clearing empties both stacks
+PASS: loading a save resets edit history and reconstructs valid circuit caches
+PASS: 30/60/144 render FPS produce identical 120-tick movement and gravity results
+PASS: a long render stall runs at most eight simulation ticks and records dropped backlog
+PASS: pausing resets leftover simulation time instead of causing a catch-up step
+PASS: invalid frame times are rejected and zero time never advances simulation
+PASS: fixed-step gravity lands on a solid floor without sinking
+PASS: jumping requires grounded contact and a second airborne jump cannot reset velocity
+PASS: a complete jump returns to the same ground height
+PASS: horizontal movement stops at walls without overlap
+PASS: swept collision prevents a fast movement step from tunneling through a one-block wall
+PASS: player overlap checks distinguish blocked and safe block restoration positions
+PASS: flight ascends while suppressing gravity velocity
+PASS: leaving flight restores fixed-step gravity
+PASS: a missing settings file uses defaults without an error warning
+PASS: malformed settings recover to defaults with a readable warning
+PASS: settings clamp controls and replace non-placeable or invalid hotbar slots
+PASS: a hotbar with the wrong length falls back to all nine default slots
+PASS: eight-slot settings preserve custom blocks and selection while adding slot nine
+PASS: migrated hotbars remain stable after saving and reloading
+PASS: graphics controls and all nine custom hotbar slots including the selected ninth slot survive settings save/load
+PASS: applying settings does not share mutable hotbar storage with the live palette
+All 50 gameplay checks passed (headless).

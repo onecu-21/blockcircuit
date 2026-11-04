@@ -7,3 +7,5 @@ dist/
 /*.png
 /core
 /core.[0-9]*
+
+artifacts/

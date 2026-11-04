@@ -1,0 +1,57 @@
+PASS: noise is repeatable with the same seed
+PASS: different seeds change the noise field
+PASS: negative-coordinate 3D noise and normalized fBm stay within bounds
+PASS: noise remains continuous across a lattice boundary
+PASS: the default constructor retains the original terrain
+PASS: legacy terrain provenance is explicit
+PASS: the whole seeded world is deterministic
+PASS: changing the seed changes terrain, caves, ores and vegetation
+PASS: improved generation differs from the legacy sine terrain
+PASS: seed 731: bedrock remains continuous
+PASS: seed 731: terrain varies in height and cave roofs remain intact
+PASS: seed 731: underground caves are generated
+PASS: seed 731: tree trunks have terrain or trunk support
+PASS: seed 731: spawn clearing and player headroom are safe
+PASS: seed 731: the example circuit remains connected and functional
+PASS: seed 42: bedrock remains continuous
+PASS: seed 42: terrain varies in height and cave roofs remain intact
+PASS: seed 42: underground caves are generated
+PASS: seed 42: tree trunks have terrain or trunk support
+PASS: seed 42: spawn clearing and player headroom are safe
+PASS: seed 42: the example circuit remains connected and functional
+PASS: seed 2026: bedrock remains continuous
+PASS: seed 2026: terrain varies in height and cave roofs remain intact
+PASS: seed 2026: underground caves are generated
+PASS: seed 2026: tree trunks have terrain or trunk support
+PASS: seed 2026: spawn clearing and player headroom are safe
+PASS: seed 2026: the example circuit remains connected and functional
+PASS: seed -1: bedrock remains continuous
+PASS: seed -1: terrain varies in height and cave roofs remain intact
+PASS: seed -1: underground caves are generated
+PASS: seed -1: tree trunks have terrain or trunk support
+PASS: seed -1: spawn clearing and player headroom are safe
+PASS: seed -1: the example circuit remains connected and functional
+PASS: seed -2147483648: bedrock remains continuous
+PASS: seed -2147483648: terrain varies in height and cave roofs remain intact
+PASS: seed -2147483648: underground caves are generated
+PASS: seed -2147483648: tree trunks have terrain or trunk support
+PASS: seed -2147483648: spawn clearing and player headroom are safe
+PASS: seed -2147483648: the example circuit remains connected and functional
+PASS: seed 2147483647: bedrock remains continuous
+PASS: seed 2147483647: terrain varies in height and cave roofs remain intact
+PASS: seed 2147483647: underground caves are generated
+PASS: seed 2147483647: tree trunks have terrain or trunk support
+PASS: seed 2147483647: spawn clearing and player headroom are safe
+PASS: seed 2147483647: the example circuit remains connected and functional
+PASS: save/load preserves block snapshots and terrain seed metadata
+PASS: loading seeded terrain restores circuit power
+PASS: invalid generation metadata is rejected without altering the active world
+PASS: v2 saves without optional terrain metadata retain compatibility
+PASS: original v1 block snapshots still load
+Terrain tests: 50 passed.
+PASS: new-world backup restores blocks, inventory, circuit power and camera
+PASS: new terrain and seed persist in the active save
+PASS: creating a world leaves the previous in-memory world intact
+PASS: failed save cannot replace the active in-memory world
+PASS: failed new-world request preserves the last successful save
+World session tests passed: 5

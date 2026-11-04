@@ -1,0 +1,13 @@
+{
+  "Passed": true,
+  "Checks": [
+    "ninth hotbar slot is selectable",
+    "F5 perspective order at frame 5",
+    "camera faces the expected direction at frame 5",
+    "F5 perspective order at frame 15",
+    "camera faces the expected direction at frame 15",
+    "F5 perspective order at frame 25",
+    "camera faces the expected direction at frame 25",
+    "inventory retains ninth-slot selection"
+  ]
+}
