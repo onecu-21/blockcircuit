@@ -20,9 +20,10 @@ sealed partial class Game
     string settingsPath=>Path.Combine(dataDirectory,"settings.json");
     string logPath=>Path.Combine(dataDirectory,"game.log");
     readonly Color ink=new(22,29,40,255),accent=new(87,231,182,255);
-    public Game(bool smoke=false,bool terrainPreview=false)
+    public Game(bool smoke=false,bool terrainPreview=false,GameRegistries? registries=null)
     {
-        world=smoke&&!terrainPreview?new World():new World(seed:2026,legacyTerrain:false);
+        world=smoke&&!terrainPreview?new World(registries:registries):new World(seed:2026,legacyTerrain:false,registries:registries);
+        palette.Blocks=world.Registries.Blocks;
         settings=smoke?new GameSettings():GameSettings.Load(settingsPath);
         settings.ApplyToPalette(palette);
         feet=world.Spawn();previousFeet=feet;
@@ -99,7 +100,7 @@ sealed partial class Game
         if(gameplaySmoke)FinishGameplaySmoke();
         if(controlsSmoke)FinishControlsSmoke();
     }
-    static float MineDuration(Block b)=>BlockCatalog.Get(b).Hardness;
+    float MineDuration(Block b)=>world.Registries.Blocks.GetInfo(b).Hardness;
     void TrySave()
     {
         try
@@ -114,7 +115,9 @@ sealed partial class Game
         try
         {
             var state=world.Load(savePath);feet=state.Position;yaw=state.Yaw;pitch=state.Pitch;
-            player.VerticalVelocity=0;player.Flying=false;ResetSimulation();Notice("World loaded. Edit history cleared.");
+            player.VerticalVelocity=0;player.Flying=false;ResetSimulation();
+            Notice(world.LastLoadRecovered?"Recovered the previous saved world. Edit history cleared.":"World loaded. Edit history cleared.");
+            if(world.LastLoadRecovered)GameLog.Write(logPath,"load-recovery","Recovered the previous valid saved world.");
         }
         catch(Exception e){Notice("Load failed: "+e.Message);GameLog.Write(logPath,"load-error",e.Message);}
     }
@@ -123,7 +126,7 @@ sealed partial class Game
         world=new World(false);
         for(int x=0;x<World.Size;x++)for(int z=0;z<World.Size;z++)world.Set(new(x,0,z),Block.Stone);
         int index=0;
-        foreach(var block in BlockCatalog.Placeable)
+        foreach(var block in world.Registries.Blocks.Placeable)
         {
             int x=3+(index%17)*2,z=3+(index/17)*2;world.Set(new(x,1,z),block.Id);index++;
         }
@@ -144,7 +147,7 @@ sealed partial class Game
         Raylib.EndMode3D();
         if(hudHidden&&!paused&&!inventoryOpen&&!settingsOpen&&!newWorldOpen){Raylib.EndDrawing();return;}
         Raylib.DrawRectangle(20,20,305,86,ink);Raylib.DrawText("BLOCK / CIRCUIT",36,32,25,accent);
-        Raylib.DrawText($"{BlockCatalog.Placeable.Count} BLOCKS  /  BUILD AND MINE",36,66,14,new Color(165,184,195,255));Raylib.DrawText($"{(int)feet.X}, {(int)feet.Y}, {(int)feet.Z}   |   {Raylib.GetFPS()} FPS",36,86,12,Color.White);
+        Raylib.DrawText($"{world.Registries.Blocks.Placeable.Count()} BLOCKS  /  BUILD AND MINE",36,66,14,new Color(165,184,195,255));Raylib.DrawText($"{(int)feet.X}, {(int)feet.Y}, {(int)feet.Z}   |   {Raylib.GetFPS()} FPS",36,86,12,Color.White);
         Raylib.DrawRectangle(width-382,20,362,160,ink);
         Raylib.DrawText("WASD move  CTRL sprint  SHIFT sneak",width-366,35,13,Color.White);
         Raylib.DrawText("SPACE jump  double SPACE fly",width-366,57,13,Color.White);
@@ -155,7 +158,7 @@ sealed partial class Game
         int cx=width/2,cy=height/2;Raylib.DrawLine(cx-7,cy,cx+7,cy,Color.White);Raylib.DrawLine(cx,cy-7,cx,cy+7,Color.White);
         if(target is {} t)
         {
-            var b=world.Get(t.Hit);string text=BlockCatalog.Get(b).Name+(b is Block.Wire or Block.Lever or Block.Lamp?$"  |  Power {world.Power.GetValueOrDefault(t.Hit)}":"");
+            var b=world.Get(t.Hit);string text=world.Registries.Blocks.GetInfo(b).Name+(b is Block.Wire or Block.Lever or Block.Lamp?$"  |  Power {world.Power.GetValueOrDefault(t.Hit)}":"");
             Raylib.DrawText(text,cx-Raylib.MeasureText(text,18)/2,cy+28,18,ink);
             if(mining!=null){Raylib.DrawRectangle(cx-60,cy+52,120,6,ink);Raylib.DrawRectangle(cx-60,cy+52,(int)(120*Math.Clamp(mineTime/MineDuration(b),0,1)),6,accent);}
         }
@@ -164,12 +167,12 @@ sealed partial class Game
         {
             int x=start+i*82,y=height-92;var b=palette.Hotbar[i];
             Raylib.DrawRectangle(x,y,76,72,i==palette.SelectedSlot?accent:ink);Raylib.DrawRectangle(x+3,y+3,70,66,ink);
-            renderer.DrawIcon(b,x+23,y+9,32);Raylib.DrawText($"{i+1}",x+7,y+7,12,Color.White);
-            var words=BlockCatalog.Get(b).Name.Split(' ');string shortName=words.Length>1?words[^1]:words[0];
+            renderer.DrawIcon(b,x+23,y+9,32,world.Registries.Blocks);Raylib.DrawText($"{i+1}",x+7,y+7,12,Color.White);
+            var words=world.Registries.Blocks.GetInfo(b).Name.Split(' ');string shortName=words.Length>1?words[^1]:words[0];
             DrawTextFit(shortName,x+7,y+43,12,62,Color.White);
             Raylib.DrawText(world.Inventory[(int)b].ToString(),x+26,y+57,11,accent);
         }
-        string selectedName=BlockCatalog.Get(palette.Selected).Name+(player.Flying?"  /  FLYING":"");
+        string selectedName=world.Registries.Blocks.GetInfo(palette.Selected).Name+(player.Flying?"  /  FLYING":"");
         Raylib.DrawText(selectedName,cx-Raylib.MeasureText(selectedName,18)/2,height-117,18,ink);
         if(messageTime>0){int tw=Raylib.MeasureText(message,17);Raylib.DrawRectangle(cx-tw/2-14,height-166,tw+28,32,ink);Raylib.DrawText(message,cx-tw/2,height-158,17,Color.White);}
         if(paused)

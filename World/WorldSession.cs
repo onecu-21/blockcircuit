@@ -12,10 +12,10 @@ public static class WorldSession
         ArgumentNullException.ThrowIfNull(current);
         string fullPath = Path.GetFullPath(savePath);
         string directory = Path.GetDirectoryName(fullPath)!;
-        var candidate = new World(seed: seed, legacyTerrain: legacyTerrain);
+        var candidate = new World(seed: seed, legacyTerrain: legacyTerrain, registries: current.Registries);
         string backup = Path.Combine(directory, "backups",
             $"world-{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.json");
-        current.Save(backup, position, yaw, pitch);
+        current.ExportSnapshot(backup, position, yaw, pitch);
         candidate.Save(fullPath, candidate.Spawn(), MathF.PI, -.18f);
         return (candidate, backup);
     }

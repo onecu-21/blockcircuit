@@ -228,7 +228,7 @@ static class GameplayTests
             check(support.UndoCount == 0 && support.RedoCount == 0 && SamePower(support.Power, ReferencePower(support, out _)),
                 "loading a save resets edit history and reconstructs valid circuit caches");
         }
-        finally { File.Delete(path); File.Delete(path + ".tmp"); }
+        finally { TestSaveFiles.Cleanup(path); }
     }
 
     static void TestClockAndPhysics(Action<bool, string> check)
@@ -352,6 +352,6 @@ static class GameplayTests
             restoredPalette.Hotbar[0] = Block.Stone;
             check(restored.Hotbar[0] == Block.CherryLog, "applying settings does not share mutable hotbar storage with the live palette");
         }
-        finally { File.Delete(path); File.Delete(path + ".tmp"); }
+        finally { TestSaveFiles.Cleanup(path); }
     }
 }

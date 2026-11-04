@@ -65,7 +65,7 @@ public sealed class CircuitSystem
             {
                 if (membership.TryGetValue(cell, out int own)) oldIds.Add(own);
                 foreach (var offset in World.Neighbors)
-                    if (membership.TryGetValue(cell + offset, out int neighbor)) oldIds.Add(neighbor);
+                    if (cell.TryOffset(offset, out var adjacentCell) && membership.TryGetValue(adjacentCell, out int neighbor)) oldIds.Add(neighbor);
             }
             var previousNetworks = oldIds.Select(id => networks[id]).ToArray();
             foreach (var network in previousNetworks)
@@ -125,9 +125,8 @@ public sealed class CircuitSystem
         nodes.Clear();
         networks.Clear();
         membership.Clear();
-        for (int y = 0; y < World.Height; y++) for (int z = 0; z < World.Size; z++) for (int x = 0; x < World.Size; x++)
+        foreach (var cell in world.OccupiedCells())
         {
-            var cell = new Cell(x, y, z);
             var block = world.Get(cell);
             if (IsCircuit(block)) nodes.Add(cell, new(block));
         }
@@ -149,7 +148,7 @@ public sealed class CircuitSystem
     {
         foreach (var offset in World.Neighbors)
         {
-            var neighbor = cell + offset;
+            if (!cell.TryOffset(offset, out var neighbor)) continue;
             if (!nodes.TryGetValue(neighbor, out var adjacent)) continue;
             node.Adjacent.Add(neighbor);
             adjacent.Adjacent.Add(cell);

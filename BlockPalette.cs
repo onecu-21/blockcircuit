@@ -7,16 +7,17 @@ namespace BlockCircuit
     public sealed class BlockPaletteModel
     {
         public const int HotbarCount = 9;
+        public BlockRegistry Blocks { get; set; } = GameRegistries.Default.Blocks;
         public Block[] Hotbar { get; } = [Block.Grass, Block.Dirt, Block.Stone, Block.Coal, Block.Iron, Block.Wire, Block.Lever, Block.Lamp, Block.Glass];
         public int SelectedSlot { get; set; }
         public BlockCategory? Category { get; set; }
         public string Query { get; set; } = "";
         public Block Selected => Hotbar[SelectedSlot];
-        public BlockInfo[] Filtered() => BlockCatalog.Placeable.Where(b =>
+        public BlockInfo[] Filtered() => Blocks.Placeable.Where(b =>
             (Category is null || b.Category == Category) && b.Name.Contains(Query.Trim(), StringComparison.OrdinalIgnoreCase)).ToArray();
         public bool Assign(Block block)
         {
-            if (!BlockCatalog.IsValid(block) || block is Block.Air or Block.Bedrock) return false;
+            if (!Blocks.IsValid(block) || block is Block.Air or Block.Bedrock) return false;
             Hotbar[SelectedSlot] = block;
             return true;
         }
@@ -56,7 +57,7 @@ sealed partial class Game
         Raylib.DrawRectangleRec(r,ink);
         Raylib.DrawRectangle(x,y,4,h,accent);
         Raylib.DrawText("BLOCK LIBRARY",x+24,y+21,28,Color.White);
-        Raylib.DrawText($"{BlockCatalog.Placeable.Count} blocks  /  choose a block for your hotbar",x+25,y+57,15,muted);
+        Raylib.DrawText($"{palette.Blocks.Placeable.Count()} blocks  /  choose a block for your hotbar",x+25,y+57,15,muted);
         if(Button(new(x+w-99,y+20,76,35),"CLOSE")){ToggleInventory();return;}
         int gridX=x+180,gridY=y+120,gridW=w-202;
         var search=new Rectangle(gridX,y+79,gridW,32);
@@ -92,7 +93,7 @@ sealed partial class Game
             var card=new Rectangle(bx,by,cellW-6,80);bool hover=Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(),card);
             Raylib.DrawRectangleRec(card,hover?new Color(47,65,76,255):tileColor);
             if(palette.Selected==b.Id)Raylib.DrawRectangleLinesEx(card,2,accent);
-            renderer.DrawIcon(b.Id,bx+10,by+8,32);
+            renderer.DrawIcon(b.Id,bx+10,by+8,32,world.Registries.Blocks);
             Raylib.DrawText(world.Inventory[(int)b.Id].ToString(),bx+cellW-40,by+12,12,muted);
             string[] words=b.Name.Split(' ');string first=words.Length>1?string.Join(' ',words[..^1]):b.Name;
             string second=words.Length>1?words[^1]:"";
@@ -116,7 +117,7 @@ sealed partial class Game
         {
             int bx=gridX+i*55,by=y+h-39;var slot=new Rectangle(bx,by,49,30);
             Raylib.DrawRectangleRec(slot,palette.SelectedSlot==i?accent:tileColor);
-            renderer.DrawIcon(palette.Hotbar[i],bx+23,by+5,20);
+            renderer.DrawIcon(palette.Hotbar[i],bx+23,by+5,20,world.Registries.Blocks);
             Raylib.DrawText((i+1).ToString(),bx+8,by+8,13,palette.SelectedSlot==i?ink:Color.White);
             if(Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(),slot)&&Raylib.IsMouseButtonPressed(MouseButton.Left)){palette.SelectedSlot=i;searchFocused=false;}
         }

@@ -1,0 +1,46 @@
+PASS: large catalog fits byte save IDs
+PASS: every stable enum ID maps to its metadata
+PASS: original block IDs preserved
+PASS: placeable blocks have unique names and finite mining durations
+PASS: all sixteen color sets and clear glass available
+PASS: starter inventory includes every placeable block
+PASS: branched lamp receives signal
+PASS: lamps do not relay signals
+PASS: signal attenuation stops at zero
+PASS: lever off clears circuit
+PASS: broken wire disconnects lamp
+PASS: replacing wire restores power
+PASS: unsupported wire reclaimed
+PASS: floating wire rejected
+PASS: bedrock protected
+PASS: raycast returns placement neighbor
+PASS: invalid and non-placeable IDs rejected without inventory access
+PASS: direct invalid block mutation rejected
+PASS: transparent glass remains collidable and supports circuits
+PASS: mining glass reclaims supported lever
+PASS: all 178 block types can be placed with correct inventory debit
+PASS: every placeable block can be mined and recovered
+PASS: all block types survive registry snapshot roundtrip
+PASS: new snapshots use version 3
+PASS: v1 migration preserves blocks, original inventory, and lever state
+PASS: v1 migration grants starter stock for newly added blocks
+PASS: v1 migration restores active circuit power
+PASS: missing and malformed save data rejected atomically
+PASS: null save arrays rejected atomically
+PASS: unknown saved block ID rejected atomically
+PASS: negative and incorrectly sized inventories rejected atomically
+PASS: unknown versions and wrong world sizes rejected atomically
+PASS: invalid switch locations rejected atomically
+PASS: invalid saved player position rejected atomically
+PASS: v1 saves cannot contain new IDs
+PASS: spawn and demonstration circuit stay clear
+PASS: all eight overworld ore types generated
+PASS: multiple underground stone varieties generated
+PASS: all eight tree species generated
+PASS: tree canopies generated
+PASS: terrain generation remains deterministic
+PASS: library exposes full catalog with nine hotbar slots
+PASS: library combines category and case-insensitive trimmed search
+PASS: choosing a block assigns the selected hotbar slot
+PASS: library rejects non-placeable and invalid IDs
+All 45 checks passed.

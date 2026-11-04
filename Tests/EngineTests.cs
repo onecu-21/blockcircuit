@@ -336,13 +336,13 @@ static class EngineTests
             loaded.Load(path);
             check(loaded.Blocks.SequenceEqual(world.Blocks) && loaded.Chunks.Chunks.Count == 3 &&
                   loaded.Chunks.Chunks.Values.Sum(c => c.NonAirCount) == 3,
-                "legacy v2 save snapshots reload into exactly the required sparse chunks");
+                "chunk-format world saves reload into exactly the required sparse chunks");
             var empty = new World(false);
             empty.Save(path, empty.Spawn(), 0, 0);
             loaded.Load(path);
             check(loaded.Chunks.Chunks.Count == 0 && loaded.Blocks.All(b => b == 0),
                 "loading an empty world removes previously populated chunks");
         }
-        finally { File.Delete(path); File.Delete(path + ".tmp"); }
+        finally { TestSaveFiles.Cleanup(path); }
     }
 }

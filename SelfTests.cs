@@ -15,7 +15,7 @@ static class SelfTests
             count++;
         }
         var ids = Enum.GetValues<Block>();
-        Check(BlockCatalog.Placeable.Count >= 120 && BlockCatalog.Count < 256, "large catalog fits byte save IDs");
+        Check(BlockCatalog.Placeable.Count >= 120 && BlockCatalog.Count < 256, "built-in legacy catalog retains byte-compatible saved IDs");
         Check(ids.Length == BlockCatalog.Count && ids.Select((b, i) => (int)b == i && BlockCatalog.Get(b).Id == b).All(ok => ok), "every stable enum ID maps to its metadata");
         Check((int)Block.Coal == 4 && (int)Block.Wire == 6 && (int)Block.Lamp == 8 && (int)Block.Bedrock == 9, "original block IDs preserved");
         Check(BlockCatalog.Placeable.Select(b => b.Name).Distinct().Count() == BlockCatalog.Placeable.Count &&
@@ -84,8 +84,8 @@ static class SelfTests
             allBlocks.Save(path, position, .3f, -.2f);
             var loaded = new World(false);
             var state = loaded.Load(path);
-            Check(loaded.Blocks.SequenceEqual(allBlocks.Blocks) && loaded.Inventory.SequenceEqual(allBlocks.Inventory) && state.Position == position && state.Yaw == .3f && state.Pitch == -.2f, "all block types survive v2 save/load roundtrip");
-            Check(JsonSerializer.Deserialize<World.SaveData>(File.ReadAllText(path), jsonOptions)?.Version == 2, "new saves use version 2");
+            Check(loaded.Blocks.SequenceEqual(allBlocks.Blocks) && loaded.Inventory.SequenceEqual(allBlocks.Inventory) && state.Position == position && state.Yaw == .3f && state.Pitch == -.2f, "all block types survive registry snapshot roundtrip");
+            Check(JsonSerializer.Deserialize<World.SaveData>(File.ReadAllText(path), jsonOptions)?.Version == 4, "new world saves use chunk format version 4");
 
             int[] legacyInventory = [0, 45, 27, 12, 9, 7, 44, 4, 13, 0];
             var legacy = new World.SaveData(1, w.Blocks, w.Switches.ToArray(), legacyInventory, position, .3f, -.2f);
@@ -94,7 +94,7 @@ static class SelfTests
             Check(loaded.Blocks.SequenceEqual(w.Blocks) && loaded.Inventory.Take(10).SequenceEqual(legacyInventory) && loaded.Switches.SetEquals(w.Switches), "v1 migration preserves blocks, original inventory, and lever state");
             Check(loaded.Inventory.Length == BlockCatalog.Count && BlockCatalog.Placeable.Where(b => (int)b.Id >= 10).All(b => loaded.Inventory[(int)b.Id] == 128), "v1 migration grants starter stock for newly added blocks");
             Check(loaded.Power.Count == w.Power.Count && w.Power.All(pair => loaded.Power.GetValueOrDefault(pair.Key) == pair.Value), "v1 migration restores active circuit power");
-            loaded.Save(path, position, .3f, -.2f);
+            loaded.SaveLegacy(path, position, .3f, -.2f);
             var valid = JsonSerializer.Deserialize<World.SaveData>(File.ReadAllText(path), jsonOptions)!;
             byte[] previousBlocks = loaded.Blocks.ToArray();
             int[] previousInventory = loaded.Inventory.ToArray();
@@ -129,7 +129,7 @@ static class SelfTests
             invalidBlocks[0] = (byte)Block.DiamondBlock;
             Check(RejectedWithoutMutation(JsonSerializer.Serialize(legacy with { Blocks = invalidBlocks }, jsonOptions)), "v1 saves cannot contain new IDs");
         }
-        finally { File.Delete(path); File.Delete(path + ".tmp"); }
+        finally { TestSaveFiles.Cleanup(path); }
 
         var terrain = new World();
         Check(terrain.Get(new(20, 9, 20)) == Block.Grass && terrain.Get(new(20, 10, 23)) == Block.Air &&

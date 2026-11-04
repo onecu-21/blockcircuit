@@ -99,7 +99,7 @@ public static class TerrainTests
             Check(rejected && loaded.Blocks.SequenceEqual(before) && loaded.Seed == int.MinValue && loaded.TerrainVersion == 1,
                 "invalid generation metadata is rejected without altering the active world");
 
-            legacy.Save(path, legacy.Spawn(), 0, 0);
+            legacy.SaveLegacy(path, legacy.Spawn(), 0, 0);
             node = JsonNode.Parse(File.ReadAllText(path))!.AsObject();
             node.Remove("Seed"); node.Remove("TerrainVersion");
             File.WriteAllText(path, node.ToJsonString());
@@ -114,7 +114,7 @@ public static class TerrainTests
             Check(loaded.Seed == 731 && loaded.TerrainVersion == 0 && loaded.Blocks.All(b => b == 0),
                 "original v1 block snapshots still load");
         }
-        finally { File.Delete(path); File.Delete(path + ".tmp"); }
+        finally { TestSaveFiles.Cleanup(path); }
         Console.WriteLine($"Terrain tests: {passed} passed.");
     }
 

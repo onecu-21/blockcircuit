@@ -2,21 +2,32 @@ using System.Collections.ObjectModel;
 
 namespace BlockCircuit;
 
-/// <summary>Sparse chunk ownership and mesh invalidation, independent of the world's current finite bounds.</summary>
+/// <summary>Sparse resident chunks, separate mesh revisions, and versioned persistence dirtiness.</summary>
 public sealed class ChunkManager
 {
-    private readonly Dictionary<ChunkCoord, Chunk> chunks = [];
-    private long revision;
+    readonly Dictionary<ChunkCoord, Chunk> chunks = [];
+    readonly Dictionary<ChunkCoord, long> contentRevisions = [];
+    readonly HashSet<ChunkCoord> dirty = [];
+    long revision;
+    long contentEpoch;
+    internal Action<Cell>? OnCellChanged { get; set; }
+    internal Action<ChunkCoord>? OnChunkRemoved { get; set; }
+    readonly BlockRegistry blocks;
     public IReadOnlyDictionary<ChunkCoord, Chunk> Chunks { get; }
+    public IReadOnlyCollection<ChunkCoord> DirtyCoordinates => dirty.ToArray();
 
-    public ChunkManager() => Chunks = new ReadOnlyDictionary<ChunkCoord, Chunk>(chunks);
+    public ChunkManager(BlockRegistry? blocks = null)
+    {
+        this.blocks = blocks ?? GameRegistries.Default.Blocks;
+        Chunks = new ReadOnlyDictionary<ChunkCoord, Chunk>(chunks);
+    }
 
     public Block Get(Cell world) => chunks.TryGetValue(ChunkCoord.FromWorld(world), out var chunk)
         ? chunk.Get(ChunkCoord.ToLocal(world)) : Block.Air;
 
     public bool Set(Cell world, Block block)
     {
-        if (!BlockCatalog.IsValid(block)) throw new ArgumentOutOfRangeException(nameof(block), "Unknown block ID.");
+        if (!blocks.IsValid(block)) throw new ArgumentOutOfRangeException(nameof(block), "Unknown block ID.");
         var coord = ChunkCoord.FromWorld(world);
         if (!chunks.TryGetValue(coord, out var chunk))
         {
@@ -25,15 +36,26 @@ public sealed class ChunkManager
             chunks.Add(coord, chunk);
         }
         if (!chunk.Set(ChunkCoord.ToLocal(world), block)) return false;
-        // Invalidate adjacent face meshes before releasing the last block's chunk.
+        TrackContent(coord);
+        // Mesh neighbors may change without requiring their block payload to be saved.
         MarkDirty(world);
-        if (chunk.NonAirCount == 0) chunks.Remove(coord);
+        OnCellChanged?.Invoke(world);
+        if (chunk.NonAirCount == 0)
+        {
+            chunks.Remove(coord);
+            chunk.Lifecycle.Retire();
+            OnChunkRemoved?.Invoke(coord);
+        }
         return true;
     }
 
     public bool Remove(ChunkCoord coord)
     {
-        if (!chunks.Remove(coord)) return false;
+        RequireValid(coord);
+        if (!chunks.Remove(coord, out var chunk)) return false;
+        TrackContent(coord);
+        chunk.Lifecycle.Retire();
+        OnChunkRemoved?.Invoke(coord);
         Touch(new(coord.X - 1, coord.Y, coord.Z));
         Touch(new(coord.X + 1, coord.Y, coord.Z));
         Touch(new(coord.X, coord.Y - 1, coord.Z));
@@ -43,6 +65,44 @@ public sealed class ChunkManager
         return true;
     }
 
+    /// <summary>Content-only changes such as block data and lever state must also be persisted.</summary>
+    public void MarkContentDirty(Cell world)
+    {
+        var coord = ChunkCoord.FromWorld(world);
+        // Do not allocate empty chunk records solely for a no-op on untouched air.
+        if (!chunks.ContainsKey(coord) && !contentRevisions.ContainsKey(coord)) return;
+        TrackContent(coord);
+    }
+
+    public long GetContentRevision(ChunkCoord coord)
+    {
+        RequireValid(coord);
+        return contentRevisions.GetValueOrDefault(coord);
+    }
+
+    /// <summary>A stale save acknowledgement cannot clear newer edits or a recreated chunk.</summary>
+    public bool MarkSaved(ChunkCoord coord, long contentRevision)
+    {
+        RequireValid(coord);
+        if (!dirty.Contains(coord) || contentRevisions.GetValueOrDefault(coord) != contentRevision) return false;
+        dirty.Remove(coord);
+        if (chunks.TryGetValue(coord, out var chunk)) chunk.IsDirty = false;
+        else contentRevisions.Remove(coord);
+        // The global epoch never repeats, so forgotten committed tombstones cannot
+        // make an old save acknowledgement match a future recreated chunk.
+        return true;
+    }
+
+    /// <summary>Use after loading a fully validated snapshot, before publishing the manager.</summary>
+    public void MarkAllSaved()
+    {
+        dirty.Clear();
+        foreach (var chunk in chunks.Values) chunk.IsDirty = false;
+        foreach (var coord in contentRevisions.Keys.Where(coord => !chunks.ContainsKey(coord)).ToArray())
+            contentRevisions.Remove(coord);
+    }
+
+    /// <summary>Mesh invalidation only; neighboring content remains clean on disk.</summary>
     public void MarkDirty(Cell world)
     {
         var coord = ChunkCoord.FromWorld(world);
@@ -56,8 +116,28 @@ public sealed class ChunkManager
         if (local.Z == ChunkCoord.Size - 1) Touch(new(coord.X, coord.Y, coord.Z + 1));
     }
 
-    private void Touch(ChunkCoord coord)
+    void TrackContent(ChunkCoord coord)
     {
-        if (chunks.TryGetValue(coord, out var chunk)) chunk.Revision = ++revision;
+        long next = checked(contentEpoch + 1);
+        contentEpoch = next;
+        contentRevisions[coord] = next;
+        dirty.Add(coord);
+        if (chunks.TryGetValue(coord, out var chunk))
+        {
+            chunk.ContentRevision = next;
+            chunk.IsDirty = true;
+        }
+    }
+
+    void Touch(ChunkCoord coord)
+    {
+        if (!coord.IsValid || !chunks.TryGetValue(coord, out var chunk)) return;
+        chunk.Lifecycle.Invalidate();
+        chunk.Revision = checked(++revision);
+    }
+
+    static void RequireValid(ChunkCoord coord)
+    {
+        if (!coord.IsValid) throw new ArgumentOutOfRangeException(nameof(coord), "Chunk origin must fit 32-bit world coordinates.");
     }
 }

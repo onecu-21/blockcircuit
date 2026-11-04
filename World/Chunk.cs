@@ -3,12 +3,19 @@ namespace BlockCircuit;
 /// <summary>Block storage is allocated only while a chunk contains non-air blocks.</summary>
 public sealed class Chunk
 {
-    private byte[]? blocks;
+    private int[]? blocks;
     public ChunkCoord Coord { get; }
     public long Revision { get; internal set; }
     public int NonAirCount { get; private set; }
+    public long ContentRevision { get; internal set; }
+    public bool IsDirty { get; internal set; }
+    public ChunkLifecycle Lifecycle { get; } = new(ChunkState.Generated);
 
-    public Chunk(ChunkCoord coord) => Coord = coord;
+    public Chunk(ChunkCoord coord)
+    {
+        if (!coord.IsValid) throw new ArgumentOutOfRangeException(nameof(coord));
+        Coord = coord;
+    }
 
     public Block Get(Cell local)
     {
@@ -21,8 +28,9 @@ public sealed class Chunk
         int index = Index(local);
         var previous = blocks is null ? Block.Air : (Block)blocks[index];
         if (previous == block) return false;
-        blocks ??= new byte[ChunkCoord.Size * ChunkCoord.Size * ChunkCoord.Size];
-        blocks[index] = (byte)block;
+        Lifecycle.Invalidate();
+        blocks ??= new int[ChunkCoord.Size * ChunkCoord.Size * ChunkCoord.Size];
+        blocks[index] = (int)block;
         if (previous == Block.Air) NonAirCount++;
         if (block == Block.Air) NonAirCount--;
         if (NonAirCount == 0) blocks = null;

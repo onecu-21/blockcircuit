@@ -5,16 +5,27 @@ namespace BlockCircuit;
 
 public readonly record struct Cell(int X, int Y, int Z)
 {
+    [System.Text.Json.Serialization.JsonIgnore]
     public Vector3 Center => new(X + .5f, Y + .5f, Z + .5f);
-    public static Cell operator +(Cell a, Cell b) => new(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
+    public static Cell operator +(Cell a, Cell b) => new(checked(a.X + b.X), checked(a.Y + b.Y), checked(a.Z + b.Z));
+    public bool TryOffset(Cell offset, out Cell result)
+    {
+        long x = (long)X + offset.X, y = (long)Y + offset.Y, z = (long)Z + offset.Z;
+        if (x < int.MinValue || x > int.MaxValue || y < int.MinValue || y > int.MaxValue || z < int.MinValue || z > int.MaxValue) { result = default; return false; }
+        result = new((int)x, (int)y, (int)z); return true;
+    }
 }
 
-public sealed class World
+public sealed partial class World
 {
     public const int Size = 40, Height = 28;
     public int Seed { get; private set; } = 731;
     public int TerrainVersion { get; private set; }
-    public ChunkManager Chunks { get; private set; } = new();
+    public ChunkManager Chunks { get; private set; }
+    public GameRegistries Registries { get; }
+    public EventHub Events { get; } = new();
+    public long TickCount { get; private set; }
+    public void Tick() { TickCount++; Events.Publish(new GameTickEvent(this, TickCount)); }
     // Legacy flattened format is materialized only for saves and compatibility checks.
     // Mutating this snapshot never mutates the live world or bypasses mesh invalidation.
     public byte[] Blocks
@@ -25,43 +36,81 @@ public sealed class World
             for (int y = 0; y < Height; y++) for (int z = 0; z < Size; z++) for (int x = 0; x < Size; x++)
             {
                 var cell = new Cell(x, y, z);
-                snapshot[Index(cell)] = (byte)Chunks.Get(cell);
+                snapshot[Index(cell)] = checked((byte)Chunks.Get(cell));
             }
             return snapshot;
         }
     }
     public HashSet<Cell> Switches { get; private set; } = [];
     public Dictionary<Cell, int> Power { get; } = [];
-    public int[] Inventory { get; private set; } = BlockCatalog.CreateInventory();
+    public int[] Inventory { get; private set; }
     public CircuitSystem Circuits { get; }
     private readonly EditHistory history = new(128);
     private EditTransaction? currentEdit;
     private bool replayingHistory;
+    readonly List<BlockChangedEvent> pendingGameEvents = [];
+    ChunkManager? boundChunks;
+    void PublishPendingChanges()
+    {
+        var pending = pendingGameEvents.ToArray(); pendingGameEvents.Clear();
+        foreach (var change in pending) Events.Publish(change);
+    }
+    void BindChunks(ChunkManager manager)
+    {
+        if (boundChunks is not null) { boundChunks.OnCellChanged = null; boundChunks.OnChunkRemoved = null; }
+        boundChunks = manager;
+        manager.OnCellChanged = cell =>
+        {
+            if (!ReferenceEquals(Chunks, manager)) return;
+            blockPayloads.Remove(cell);
+            if (manager.Get(cell) != Block.Lever) Switches.Remove(cell);
+            if (currentEdit is null && !replayingHistory) history.Clear();
+        };
+        manager.OnChunkRemoved = coord =>
+        {
+            if (!ReferenceEquals(Chunks, manager)) return;
+            foreach (var cell in blockPayloads.Keys.Where(c => ChunkCoord.FromWorld(c) == coord).ToArray()) blockPayloads.Remove(cell);
+            Switches.RemoveWhere(cell => ChunkCoord.FromWorld(cell) == coord);
+            if (currentEdit is null && !replayingHistory) history.Clear();
+        };
+    }
     public int UndoCount => history.UndoCount;
     public int RedoCount => history.RedoCount;
     public static readonly Cell[] Neighbors = [new(1, 0, 0), new(-1, 0, 0), new(0, 1, 0), new(0, -1, 0), new(0, 0, 1), new(0, 0, -1)];
 
     public bool Inside(Cell p) => p.X >= 0 && p.X < Size && p.Y >= 0 && p.Y < Height && p.Z >= 0 && p.Z < Size;
     private static int Index(Cell p) => (p.Y * Size + p.Z) * Size + p.X;
-    public Block Get(Cell p) => Inside(p) ? Chunks.Get(p) : Block.Air;
+    public Block Get(Cell p) => Chunks.Get(p);
     public bool Solid(Cell p) => Get(p) is not (Block.Air or Block.Wire or Block.Lever);
 
     public void Set(Cell p, Block b)
     {
-        if (!BlockCatalog.IsValid(b)) throw new ArgumentOutOfRangeException(nameof(b), "Unknown block ID.");
-        if (!Inside(p)) return;
-        var previous = new EditCellState(Get(p), Switches.Contains(p));
-        if (previous.Block == b && (b == Block.Lever || !previous.SwitchOn)) return;
+        if (!Registries.Blocks.IsValid(b)) throw new ArgumentOutOfRangeException(nameof(b), "Unknown block ID.");
+        var previous = new EditCellState(Get(p), Switches.Contains(p), blockPayloads.GetValueOrDefault(p));
+        if (previous.Block == b && (b == Block.Lever || !previous.SwitchOn) && !IsMissing(p)) return;
         if (currentEdit is null && !replayingHistory) history.Clear();
         Chunks.Set(p, b);
+        bool removedPayload = blockPayloads.Remove(p);
+        if (removedPayload && previous.Block == b) Chunks.MarkContentDirty(p);
         if (b != Block.Lever) Switches.Remove(p);
         currentEdit?.RecordCell(p, previous, new(b, Switches.Contains(p)));
         if (previous.Block != b) Circuits.EnqueueBlockChange(p, previous.Block, b);
         else Circuits.EnqueueSwitchChange(p);
+        if (previous.Block != b)
+        {
+            var change = new BlockChangedEvent(this, p, previous.Block, b);
+            if (currentEdit is not null || replayingHistory) pendingGameEvents.Add(change);
+            else Events.Publish(change);
+        }
     }
 
-    public World(bool generate = true, int seed = 731, bool legacyTerrain = true)
+    public World(bool generate = true, int seed = 731, bool legacyTerrain = true, GameRegistries? registries = null)
     {
+        Registries = registries ?? GameRegistries.Default;
+        if (!Registries.Blocks.IsFrozen || !Registries.Items.IsFrozen || !Registries.EntityTypes.IsFrozen) throw new InvalidOperationException("Freeze registries before creating a world.");
+        Chunks = new ChunkManager(Registries.Blocks);
+        BindChunks(Chunks);
+        Inventory = Registries.Blocks.CreateInventory();
         Seed = seed;
         TerrainVersion = legacyTerrain ? 0 : WorldGenerator.Version;
         Circuits = new CircuitSystem(this);
@@ -158,51 +207,57 @@ public sealed class World
         if (Get(p) != Block.Lever) return false;
         return PerformEdit(() =>
         {
-            var before = new EditCellState(Block.Lever, Switches.Contains(p));
+            var before = new EditCellState(Block.Lever, Switches.Contains(p), blockPayloads.GetValueOrDefault(p));
             if (!Switches.Add(p)) Switches.Remove(p);
-            currentEdit!.RecordCell(p, before, new(Block.Lever, Switches.Contains(p)));
+            currentEdit!.RecordCell(p, before, new(Block.Lever, Switches.Contains(p), blockPayloads.GetValueOrDefault(p)));
             Circuits.EnqueueSwitchChange(p);
+            Chunks.MarkContentDirty(p);
         });
     }
 
     public bool Mine(Cell p)
     {
         var b = Get(p);
-        if (b is Block.Air or Block.Bedrock || Inventory[(int)b] == int.MaxValue) return false;
-        return PerformEdit(() =>
+        if (b is Block.Air or Block.Bedrock || IsMissing(p) || Inventory[(int)b] == int.MaxValue) return false;
+        bool success = PerformEdit(() =>
         {
             ChangeInventory(b, 1);
             Set(p, Block.Air);
             RemoveUnsupportedAbove(p);
         });
+        if (success) Events.Publish(new BlockBrokenEvent(this, p, b));
+        return success;
     }
 
     public bool Place(Cell p, Block b)
     {
-        if (!BlockCatalog.IsValid(b) || !Inside(p) || Get(p) != Block.Air || b is Block.Air or Block.Bedrock || Inventory[(int)b] <= 0) return false;
+        if (!Registries.Blocks.IsValid(b) || !Inside(p) || Get(p) != Block.Air || b is Block.Air or Block.Bedrock || Inventory[(int)b] <= 0) return false;
         if (b is Block.Wire or Block.Lever && !Solid(p + new Cell(0, -1, 0))) return false;
-        return PerformEdit(() =>
+        bool success = PerformEdit(() =>
         {
             Set(p, b);
             ChangeInventory(b, -1);
         });
+        if (success) Events.Publish(new BlockPlacedEvent(this, p, b));
+        return success;
     }
 
     private void RemoveUnsupportedAbove(Cell support)
     {
-        var p = support + new Cell(0, 1, 0);
+        if (!support.TryOffset(new(0, 1, 0), out var p)) return;
         while (Inside(p))
         {
             var b = Get(p);
             if (b is not (Block.Wire or Block.Lever) || Solid(p + new Cell(0, -1, 0))) break;
             if (Inventory[(int)b] < int.MaxValue) ChangeInventory(b, 1);
             Set(p, Block.Air);
-            p += new Cell(0, 1, 0);
+            if (!p.TryOffset(new(0, 1, 0), out p)) break;
         }
     }
 
     private bool PerformEdit(Action action)
     {
+        if (currentEdit is not null) throw new InvalidOperationException("An edit is already in progress.");
         currentEdit = new EditTransaction();
         try
         {
@@ -211,7 +266,7 @@ public sealed class World
             history.Record(currentEdit);
             return true;
         }
-        finally { currentEdit = null; }
+        finally { currentEdit = null; PublishPendingChanges(); }
     }
 
     private void ChangeInventory(Block block, int delta)
@@ -234,7 +289,7 @@ public sealed class World
         {
             var expected = redo ? change.Before : change.After;
             var desired = redo ? change.After : change.Before;
-            if (Get(change.Cell) != expected.Block || Switches.Contains(change.Cell) != expected.SwitchOn) return false;
+            if (Get(change.Cell) != expected.Block || Switches.Contains(change.Cell) != expected.SwitchOn || blockPayloads.GetValueOrDefault(change.Cell) != expected.Payload) return false;
             if (desired.Block != expected.Block && canRestore is not null && !canRestore(change.Cell, desired.Block)) return false;
         }
         foreach (var (block, delta) in edit.InventoryDeltas)
@@ -250,17 +305,20 @@ public sealed class World
             {
                 var desired = redo ? change.After : change.Before;
                 Set(change.Cell, desired.Block);
+                if (desired.Payload is null) blockPayloads.Remove(change.Cell);
+                else blockPayloads[change.Cell] = desired.Payload;
                 bool wasOn = Switches.Contains(change.Cell);
                 if (desired.SwitchOn) Switches.Add(change.Cell);
                 else Switches.Remove(change.Cell);
-                if (wasOn != desired.SwitchOn) Circuits.EnqueueSwitchChange(change.Cell);
+                if (wasOn != desired.SwitchOn) { Circuits.EnqueueSwitchChange(change.Cell); Chunks.MarkContentDirty(change.Cell); }
+                if (desired.Payload is not null) Chunks.MarkContentDirty(change.Cell);
             }
             foreach (var (block, delta) in edit.InventoryDeltas) Inventory[(int)block] += sign * delta;
             Circuits.ProcessPending();
             if (redo) history.FinishRedo(); else history.FinishUndo();
             return true;
         }
-        finally { replayingHistory = false; }
+        finally { replayingHistory = false; PublishPendingChanges(); }
     }
 
     public (Cell Hit, Cell Previous)? Raycast(Vector3 origin, Vector3 direction, float range = 6)
@@ -273,8 +331,10 @@ public sealed class World
     }
     private static readonly JsonSerializerOptions JsonOptions = new() { IncludeFields = true };
 
-    public void Save(string path, Vector3 position, float yaw, float pitch)
+    public void SaveLegacy(string path, Vector3 position, float yaw, float pitch)
     {
+        if (Registries.Blocks.Count != BlockCatalog.Count || blockPayloads.Count != 0 || unknownInventory.Count != 0 || OccupiedCells().Any(c => !Inside(c)))
+            throw new InvalidOperationException("Legacy export cannot represent extension data.");
         var data = new SaveData(2, Blocks, Switches.ToArray(), Inventory, position, yaw, pitch)
         { Seed = Seed, TerrainVersion = TerrainVersion };
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
@@ -282,7 +342,7 @@ public sealed class World
         File.Move(path + ".tmp", path, true);
     }
 
-    public (Vector3 Position, float Yaw, float Pitch) Load(string path)
+    private (Vector3 Position, float Yaw, float Pitch) LoadLegacy(string path)
     {
         SaveData data;
         try
@@ -304,17 +364,19 @@ public sealed class World
             throw new InvalidDataException("Invalid save format");
 
         // Prepare and validate the entire migrated state before touching the current world.
-        int[] inventory = BlockCatalog.CreateInventory();
+        int[] inventory = Registries.Blocks.CreateInventory();
         Array.Copy(data.Inventory, inventory, data.Inventory.Length);
         var switches = data.Switches.ToHashSet();
-        var chunks = new ChunkManager();
+        var chunks = new ChunkManager(Registries.Blocks);
         for (int y = 0; y < Height; y++) for (int z = 0; z < Size; z++) for (int x = 0; x < Size; x++)
         {
             var cell = new Cell(x, y, z);
             var block = (Block)data.Blocks[Index(cell)];
             if (block != Block.Air) chunks.Set(cell, block);
         }
-        Chunks = chunks;
+        blockPayloads.Clear(); unknownInventory.Clear(); TickCount = 0;
+        StoredPath = null; StoredGeneration = null; LastLoadRecovered = false;
+        Chunks = chunks; BindChunks(chunks);
         Seed = data.Seed;
         TerrainVersion = data.TerrainVersion;
         Inventory = inventory;

@@ -10,6 +10,9 @@ public sealed class GameSettings
     int targetFps = 60;
     float fieldOfView = 72f, mouseSensitivity = .0025f, drawDistance = 64f;
     Block[] hotbar = DefaultHotbar();
+    string[]? hotbarIds;
+    Block[]? lastAppliedHotbar;
+    BlockRegistry? lastAppliedRegistry;
     int selectedSlot;
     static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -43,6 +46,12 @@ public sealed class GameSettings
     {
         get => hotbar;
         set => hotbar = ValidatedHotbar(value);
+    }
+    /// <summary>Persistent content identities; legacy Hotbar remains a safe built-in fallback.</summary>
+    public string[]? HotbarIds
+    {
+        get => hotbarIds?.ToArray();
+        set => hotbarIds = ValidatedHotbarIds(value);
     }
     public int SelectedSlot
     {
@@ -95,14 +104,37 @@ public sealed class GameSettings
     {
         ArgumentNullException.ThrowIfNull(palette);
         hotbar = ValidatedHotbar(hotbar);
-        Array.Copy(hotbar, palette.Hotbar, palette.Hotbar.Length);
+        var resolved = hotbar.ToArray();
+        if (hotbarIds is not null)
+            for (int slot = 0; slot < resolved.Length; slot++)
+                if (palette.Blocks.TryGetBlock(new ContentId(hotbarIds[slot]), out var block) && block is not (Block.Air or Block.Bedrock))
+                    resolved[slot] = block;
+        Array.Copy(resolved, palette.Hotbar, palette.Hotbar.Length);
+        lastAppliedHotbar = resolved;
+        lastAppliedRegistry = palette.Blocks;
         palette.SelectedSlot = selectedSlot;
     }
 
     public void CapturePalette(BlockPaletteModel palette)
     {
         ArgumentNullException.ThrowIfNull(palette);
-        hotbar = ValidatedHotbar(palette.Hotbar);
+        var fallback = ValidatedHotbar(palette.Hotbar);
+        var ids = new string[BlockPaletteModel.HotbarCount];
+        for (int slot = 0; slot < ids.Length; slot++)
+        {
+            // Preserve an unavailable mod selection if the player has left its shown fallback unchanged.
+            bool keepMissing = hotbarIds is not null && lastAppliedHotbar is not null &&
+                ReferenceEquals(lastAppliedRegistry, palette.Blocks) && palette.Hotbar[slot] == lastAppliedHotbar[slot] &&
+                !palette.Blocks.TryGetBlock(new ContentId(hotbarIds[slot]), out _);
+            if (keepMissing) ids[slot] = hotbarIds![slot];
+            else if (palette.Blocks.IsValid(palette.Hotbar[slot]) && palette.Hotbar[slot] is not (Block.Air or Block.Bedrock))
+                ids[slot] = palette.Blocks.GetId(palette.Hotbar[slot]).ToString();
+            else ids[slot] = GameRegistries.Default.Blocks.GetId(fallback[slot]).ToString();
+        }
+        hotbar = fallback;
+        hotbarIds = ids;
+        lastAppliedHotbar = palette.Hotbar.ToArray();
+        lastAppliedRegistry = palette.Blocks;
         SelectedSlot = palette.SelectedSlot;
     }
 
@@ -114,6 +146,9 @@ public sealed class GameSettings
         MouseSensitivity = .0025f;
         DrawDistance = 64f;
         hotbar = DefaultHotbar();
+        hotbarIds = null;
+        lastAppliedHotbar = null;
+        lastAppliedRegistry = null;
         SelectedSlot = 0;
         LoadWarning = null;
     }
@@ -129,6 +164,22 @@ public sealed class GameSettings
         for (int slot = 0; slot < value.Length; slot++)
             if (BlockCatalog.IsValid(value[slot]) && value[slot] is not (Block.Air or Block.Bedrock))
                 valid[slot] = value[slot];
+        return valid;
+    }
+
+
+    static string[]? ValidatedHotbarIds(string[]? value)
+    {
+        if (value is null || value.Length is not (8 or BlockPaletteModel.HotbarCount)) return null;
+        var defaults = DefaultHotbar();
+        var valid = new string[BlockPaletteModel.HotbarCount];
+        for (int slot = 0; slot < valid.Length; slot++)
+        {
+            valid[slot] = GameRegistries.Default.Blocks.GetId(defaults[slot]).ToString();
+            if (slot >= value.Length) continue;
+            try { valid[slot] = new ContentId(value[slot]).ToString(); }
+            catch (ArgumentException) { }
+        }
         return valid;
     }
 

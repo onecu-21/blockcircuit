@@ -24,7 +24,7 @@ public static class ChunkMesher
 
     // Keeping every material input in the key prevents merging visually distinct faces,
     // even if later lighting or transparency rules differ for the same block ID.
-    readonly record struct FaceKey(Block Block, byte Variant, byte Direction, byte Light,
+    readonly record struct FaceKey(Block Block, Block TextureBlock, byte Variant, byte Direction, byte Light,
         bool Translucent, bool CatalogTransparent, bool Powered);
 
     public static ChunkMeshData Build(World world, ChunkCoord coord, bool greedy = true)
@@ -46,8 +46,8 @@ public static class ChunkMesher
         for (int z = -1; z <= size; z++)
         for (int x = -1; x <= size; x++)
         {
-            var cell = origin + new Cell(x, y, z);
-            var block = world.Get(cell);
+            bool validCell = origin.TryOffset(new Cell(x, y, z), out var cell);
+            var block = validCell ? world.Get(cell) : Block.Air;
             halo[HaloIndex(x, y, z)] = block;
             if (x >= 0 && x < size && y >= 0 && y < size && z >= 0 && z < size &&
                 block is Block.Wire or Block.Lever)
@@ -66,14 +66,14 @@ public static class ChunkMesher
                 var block = halo[HaloIndex(local.X, local.Y, local.Z)];
                 if (block is Block.Air or Block.Wire or Block.Lever) continue;
                 var neighbor = halo[HaloIndex(local.X + offset.X, local.Y + offset.Y, local.Z + offset.Z)];
-                if (!FaceVisible(block, neighbor)) continue;
+                if (!FaceVisible(world.Registries.Blocks, block, neighbor)) continue;
 
-                var info = BlockCatalog.Get(block);
+                var info = world.Registries.Blocks.GetInfo(block);
                 bool powered = block == Block.Lamp && world.Power.GetValueOrDefault(origin + local) > 0;
                 byte variant = (byte)(powered ? 3 : face == 2 ? 1 : face == 3 ? 2 : 0);
                 bool emissive = powered || block is Block.Glowstone or Block.SeaLantern or Block.MagmaBlock;
                 byte light = (byte)(255 * (emissive ? .95f : FaceLight[face]));
-                mask[v * size + u] = new(block, variant, (byte)face, light,
+                mask[v * size + u] = new(block, info.TextureBlock, variant, (byte)face, light,
                     info.Pattern == BlockPattern.Glass, info.Transparent, powered);
                 exposedFaces++;
             }
@@ -116,10 +116,10 @@ public static class ChunkMesher
         return true;
     }
 
-    static bool FaceVisible(Block block, Block neighbor)
+    static bool FaceVisible(BlockRegistry blocks, Block block, Block neighbor)
     {
         if (neighbor is Block.Air or Block.Wire or Block.Lever) return true;
-        var info = BlockCatalog.Get(neighbor);
+        var info = blocks.GetInfo(neighbor);
         if (!info.Transparent && info.Pattern != BlockPattern.Glass) return false;
         return block != neighbor;
     }
@@ -134,7 +134,7 @@ public static class ChunkMesher
         {
             var corners = FaceVertices[key.Direction];
             var origin = new Vector3(cell.X, cell.Y, cell.Z);
-            int tile = (int)key.Block * 4 + key.Variant;
+            int tile = (int)key.TextureBlock * 4 + key.Variant;
             byte column = (byte)(tile % AtlasColumns), row = (byte)(tile / AtlasColumns);
             // Fractional UV sampling in the shader repeats the atlas tile across the
             // merged rectangle. Each voxel still occupies exactly one tile period.

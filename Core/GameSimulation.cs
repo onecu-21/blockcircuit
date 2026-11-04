@@ -56,6 +56,7 @@ sealed partial class Game
     bool CanRestore(Cell cell,Block block)=>block is Block.Air or Block.Wire or Block.Lever || !CollisionSystem.OverlapsPlayer(cell,feet,player.BodyHeight);
     void SimulationTick(float dt)
     {
+        world.Tick();
         previousFeet=feet;
         var input=simulationInput.Consume();
         if(input.ToggleFlight)player.Flying=!player.Flying;

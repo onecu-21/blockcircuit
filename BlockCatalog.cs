@@ -1,7 +1,7 @@
 namespace BlockCircuit;
 
 // IDs 0-9 are kept unchanged so original saved worlds remain readable.
-public enum Block : byte
+public enum Block : int
 {
     Air = 0,
     Grass = 1,
@@ -189,7 +189,7 @@ public enum BlockCategory { Natural, Wood, Stone, Ores, Glass, Wool, Concrete, T
 public enum BlockPattern { Plain, Grass, Soil, Stone, Ore, Log, Planks, Leaves, Bricks, Tiles, Glass, Wool, Concrete, Terracotta, Metal, Lamp, Wire, Lever }
 
 public sealed record BlockInfo(Block Id, string Name, BlockCategory Category, uint Tint,
-    BlockPattern Pattern, float Hardness = .4f, bool Transparent = false);
+    BlockPattern Pattern, float Hardness = .4f, bool Transparent = false, Block TextureBlock = Block.Stone);
 
 public static class BlockCatalog
 {
@@ -381,9 +381,10 @@ public static class BlockCatalog
         Entries.Where(info => info.Id is not (Block.Air or Block.Bedrock)).ToArray());
 
     // Count includes Air and Bedrock and is the required inventory array length.
+    internal static IReadOnlyList<BlockInfo> Builtins => Entries;
     public static int Count => Entries.Length;
-    public static bool IsValid(Block block) => (int)block < Entries.Length;
-    public static BlockInfo Get(Block block) => IsValid(block) ? Entries[(int)block]
+    public static bool IsValid(Block block) => (uint)block < Entries.Length;
+    public static BlockInfo Get(Block block) => IsValid(block) ? GameRegistries.Default.Blocks.GetInfo(block)
         : throw new ArgumentOutOfRangeException(nameof(block), "Unknown block ID.");
 
     public static int[] CreateInventory()

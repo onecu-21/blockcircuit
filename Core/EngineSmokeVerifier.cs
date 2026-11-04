@@ -59,5 +59,5 @@ public sealed class EngineSmokeVerifier : IDisposable
         Console.WriteLine($"PASS: GPU engine smoke ({FrameCount} frames, {idleFrames} idle frames without rebuild/upload; all resources released)");
     }
     static void Require(bool condition,string message){if(!condition)throw new InvalidOperationException("GPU verification failed: "+message);}
-    public void Dispose(){File.Delete(path);File.Delete(path+".tmp");}
+    public void Dispose(){TestSaveFiles.Cleanup(path);}
 }

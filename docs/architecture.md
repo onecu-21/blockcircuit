@@ -1,7 +1,7 @@
 # BlockCircuit 아키텍처 — Phase 00 기준선
 
 기준일: 2026-11-04 (Asia/Seoul). 기준 소스: 5e9823a9d45ff2ad93b86f8dd8e5b7d56f337433.
-확장 전 코드의 상태를 기록한다. 현재 Phase 01에서 변경된 20 TPS 시간/물리/입력 계약은 [physics.md](physics.md)를 따른다. 후속 단계는 [roadmap.md](roadmap.md), 측정 원본은 [기준선 기록](baseline/2026-11-04/README.md)을 따른다.
+확장 전 코드의 상태를 기록한다. 현재 시간/물리/입력 계약은 [physics.md](physics.md), Registry/API는 [registries.md](registries.md), 청크/저장은 [storage.md](storage.md)를 따른다. 후속 단계는 [roadmap.md](roadmap.md), 측정 원본은 [기준선 기록](baseline/2026-11-04/README.md)을 따른다.
 
 ## 런타임과 구성
 

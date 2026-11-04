@@ -1,6 +1,6 @@
 namespace BlockCircuit;
 
-internal readonly record struct EditCellState(Block Block, bool SwitchOn);
+internal readonly record struct EditCellState(Block Block, bool SwitchOn, World.BlockPayload? Payload = null);
 internal readonly record struct EditCellChange(Cell Cell, EditCellState Before, EditCellState After);
 
 /// <summary>One user action stores only touched cells and inventory deltas, including support side effects.</summary>

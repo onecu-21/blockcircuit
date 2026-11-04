@@ -212,12 +212,18 @@ public sealed class BlockRenderer : IDisposable
             if (!ReferenceEquals(cached.Source, chunk) || cached.Revision != chunk.Revision)
             {
                 long start = Stopwatch.GetTimestamp();
+                long operation = chunk.Lifecycle.BeginMeshing();
+                try
+                {
                 var data = ChunkMesher.Build(world, coord);
                 Update(cached.Opaque, data.Opaque);
                 Update(cached.Transparent, data.Transparent);
                 cached.Circuits = data.Circuits;
                 cached.Source = chunk;
                 cached.Revision = chunk.Revision;
+                    chunk.Lifecycle.CompleteMeshing(operation);
+                }
+                catch (Exception error) { chunk.Lifecycle.Fail(operation, error); throw; }
                 LastBuildMilliseconds += Stopwatch.GetElapsedTime(start).TotalMilliseconds;
                 MeshBuildsThisFrame++;
                 TotalMeshBuilds++;
@@ -355,14 +361,15 @@ public sealed class BlockRenderer : IDisposable
         }
     }
 
-    public void DrawIcon(Block block, int x, int y, int size)
+    public void DrawIcon(Block block, int x, int y, int size, BlockRegistry? blocks = null)
     {
         if (block == Block.Air || size<=0) return;
-        int tile = (int)block * 4;
+        var info = (blocks ?? GameRegistries.Default.Blocks).GetInfo(block);
+        int tile = (int)info.TextureBlock * 4;
         var source = new Rectangle(tile%Columns*Tile,tile/Columns*Tile,Tile,Tile);
         // A subtle offset gives each textured tile a readable physical edge at small sizes.
         Raylib.DrawRectangle(x+2,y+2,size,size,new Color(0,0,0,95));
-        if (BlockCatalog.Get(block).Pattern == BlockPattern.Glass)
+        if (info.Pattern == BlockPattern.Glass)
             Raylib.DrawRectangle(x,y,size,size,new Color(80,107,121,255));
         Raylib.DrawTexturePro(atlas,source,new Rectangle(x,y,size,size),Vector2.Zero,0,Color.White);
         Raylib.DrawRectangleLines(x,y,size,size,new Color(255,255,255,38));
