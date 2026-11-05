@@ -1,0 +1,62 @@
+{
+  "Dates": "2026-11-05–06",
+  "Environment": "Windows x64 / .NET SDK 10.0.403 / Raylib-cs 6.1.0 / native OpenGL",
+  "Configurations": {
+    "Debug": {
+      "HeadlessChecks": {
+        "self-test": 45,
+        "engine-tests": 168,
+        "gameplay-tests": 91,
+        "terrain-tests": 55,
+        "controls-tests": 38,
+        "streaming-tests": 128,
+        "inventory-tests": 63,
+        "multiplayer-tests": 63,
+        "startup-tests": 56
+      },
+      "TotalHeadlessChecks": 707,
+      "GraphicsModes": 11,
+      "StartupSmoke": {
+        "Passed": true,
+        "Checks": 37,
+        "Frames": 73,
+        "LoadingFrames": 16,
+        "NativeWindow": true,
+        "IsolatedWorldLibrary": true,
+        "RealLoopbackTcp": true,
+        "AllGpuResourcesReleased": true,
+        "GpuAllocations": 33,
+        "GpuReleases": 33,
+        "Error": null
+      }
+    },
+    "Release": {
+      "HeadlessChecks": {
+        "self-test": 45,
+        "engine-tests": 168,
+        "gameplay-tests": 91,
+        "terrain-tests": 55,
+        "controls-tests": 38,
+        "streaming-tests": 128,
+        "inventory-tests": 63,
+        "multiplayer-tests": 63,
+        "startup-tests": 56
+      },
+      "TotalHeadlessChecks": 707,
+      "GraphicsModes": 11,
+      "StartupSmoke": {
+        "Passed": true,
+        "Checks": 37,
+        "Frames": 74,
+        "LoadingFrames": 17,
+        "NativeWindow": true,
+        "IsolatedWorldLibrary": true,
+        "RealLoopbackTcp": true,
+        "AllGpuResourcesReleased": true,
+        "GpuAllocations": 33,
+        "GpuReleases": 33,
+        "Error": null
+      }
+    }
+  }
+}

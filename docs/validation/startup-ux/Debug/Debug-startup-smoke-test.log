@@ -1,0 +1,199 @@
+INFO: Initializing raylib 5.0
+INFO: Platform backend: DESKTOP (GLFW)
+INFO: Supported raylib modules:
+INFO:     > rcore:..... loaded (mandatory)
+INFO:     > rlgl:...... loaded (mandatory)
+INFO:     > rshapes:... loaded (optional)
+INFO:     > rtextures:. loaded (optional)
+INFO:     > rtext:..... loaded (optional)
+INFO:     > rmodels:... loaded (optional)
+INFO:     > raudio:.... loaded (optional)
+INFO: DISPLAY: Trying to enable MSAA x4
+INFO: DISPLAY: Device initialized successfully
+INFO:     > Display size: 1920 x 1080
+INFO:     > Screen size:  1280 x 800
+INFO:     > Render size:  1280 x 800
+INFO:     > Viewport offsets: 0, 0
+INFO: GLAD: OpenGL extensions loaded successfully
+INFO: GL: Supported extensions count: 404
+INFO: GL: OpenGL device information:
+INFO:     > Vendor:   NVIDIA Corporation
+INFO:     > Renderer: NVIDIA GeForce RTX 5070/PCIe/SSE2
+INFO:     > Version:  3.3.0 NVIDIA 617.42
+INFO:     > GLSL:     3.30 NVIDIA via Cg compiler
+INFO: GL: VAO extension detected, VAO functions loaded successfully
+INFO: GL: NPOT textures extension detected, full NPOT textures supported
+INFO: GL: DXT compressed textures supported
+INFO: GL: ETC2/EAC compressed textures supported
+INFO: PLATFORM: DESKTOP (GLFW): Initialized successfully
+INFO: TEXTURE: [ID 1] Texture loaded successfully (1x1 | R8G8B8A8 | 1 mipmaps)
+INFO: TEXTURE: [ID 1] Default texture loaded successfully
+INFO: SHADER: [ID 1] Vertex shader compiled successfully
+INFO: SHADER: [ID 2] Fragment shader compiled successfully
+INFO: SHADER: [ID 3] Program shader loaded successfully
+INFO: SHADER: [ID 3] Default shader loaded successfully
+INFO: RLGL: Render batch vertex buffers loaded successfully in RAM (CPU)
+INFO: RLGL: Render batch vertex buffers loaded successfully in VRAM (GPU)
+INFO: RLGL: Default OpenGL state initialized successfully
+INFO: TEXTURE: [ID 2] Texture loaded successfully (128x128 | GRAY_ALPHA | 1 mipmaps)
+INFO: FONT: Default font loaded successfully (224 glyphs)
+INFO: TIMER: Target time per frame: 16.667 milliseconds
+INFO: TEXTURE: [ID 3] Texture loaded successfully (512x512 | R8G8B8A8 | 1 mipmaps)
+INFO: SHADER: [ID 4] Vertex shader compiled successfully
+INFO: SHADER: [ID 5] Fragment shader compiled successfully
+INFO: SHADER: [ID 6] Program shader loaded successfully
+PASS: normal first launch shows the title without generating, loading or writing a world
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-title-preview.png] File saved successfully
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-title-preview.png] Image exported successfully
+INFO: SYSTEM: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-title-preview.png] Screenshot taken successfully
+PASS: closing an untouched title cannot save a placeholder world
+PASS: empty singleplayer offers first-world creation
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-create-game-preview.png] File saved successfully
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-create-game-preview.png] Image exported successfully
+INFO: SYSTEM: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-create-game-preview.png] Screenshot taken successfully
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-create-world-preview.png] File saved successfully
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-create-world-preview.png] Image exported successfully
+INFO: SYSTEM: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-create-world-preview.png] Screenshot taken successfully
+PASS: canceling creation returns to an empty list without files
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-empty-worlds-preview.png] File saved successfully
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-empty-worlds-preview.png] Image exported successfully
+INFO: SYSTEM: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-empty-worlds-preview.png] Screenshot taken successfully
+PASS: creation queues I/O until a loading frame has been drawn
+PASS: world generation cannot begin before the first loading frame
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-loading-preview.png] File saved successfully
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-loading-preview.png] Image exported successfully
+INFO: SYSTEM: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-loading-preview.png] Screenshot taken successfully
+PASS: selected world enters only after spawn terrain and the renderer are prepared
+PASS: world entry captures the mouse
+PASS: a newly created world has a solid spawn floor and clear body/head space
+INFO: VAO: [ID 2] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 3] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 4] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 5] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 6] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 7] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 8] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 9] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 10] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 11] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 12] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 13] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 14] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 15] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 16] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 17] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 18] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 19] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 20] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 21] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 22] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 23] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 24] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 25] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 26] Mesh uploaded successfully to VRAM (GPU)
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-playing-preview.png] File saved successfully
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-playing-preview.png] Image exported successfully
+INFO: SYSTEM: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-playing-preview.png] Screenshot taken successfully
+PASS: creation applies the entered name, seed and natural terrain
+PASS: the create button press is released before gameplay actions are accepted
+PASS: the edited spawn column is resident
+INFO: VAO: [ID 27] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 28] Mesh uploaded successfully to VRAM (GPU)
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-pause-preview.png] File saved successfully
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-pause-preview.png] Image exported successfully
+INFO: SYSTEM: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-pause-preview.png] Screenshot taken successfully
+INFO: VAO: [ID 2] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 3] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 6] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 13] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 14] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 17] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 23] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 4] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 5] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 27] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 18] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 20] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 7] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 16] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 26] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 10] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 11] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 8] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 9] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 12] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 22] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 28] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 15] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 19] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 24] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 21] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 25] Unloaded vertex array data from VRAM (GPU)
+PASS: save and quit returns to the title and releases the world's streaming and mesh cache
+PASS: a named world saves only to its own GUID folder
+PASS: subsequent singleplayer opens the saved-world list
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-world-list-preview.png] File saved successfully
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-world-list-preview.png] Image exported successfully
+INFO: SYSTEM: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-world-list-preview.png] Screenshot taken successfully
+PASS: selected world enters only after spawn terrain and the renderer are prepared
+PASS: world entry captures the mouse
+PASS: re-entering restores the selected world's edits, carried items and camera
+PASS: reopened world saves successfully
+INFO: VAO: [ID 2] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 3] Mesh uploaded successfully to VRAM (GPU)
+PASS: selected world enters only after spawn terrain and the renderer are prepared
+PASS: world entry captures the mouse
+PASS: creating a second classic world uses independent storage and leaves the first save untouched
+PASS: a failed save retains the playable world and reports why quitting was blocked
+INFO: VAO: [ID 2] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 3] Unloaded vertex array data from VRAM (GPU)
+PASS: save and quit retries successfully after the writer lock is released
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-edit-world-preview.png] File saved successfully
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-edit-world-preview.png] Image exported successfully
+INFO: SYSTEM: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-edit-world-preview.png] Screenshot taken successfully
+PASS: renaming changes the label without rewriting saved terrain
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-delete-confirmation-preview.png] File saved successfully
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-delete-confirmation-preview.png] Image exported successfully
+INFO: SYSTEM: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-delete-confirmation-preview.png] Screenshot taken successfully
+PASS: canceling the delete confirmation preserves both worlds
+PASS: the saved-world search filters by display name
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-small-world-list-preview.png] File saved successfully
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-small-world-list-preview.png] Image exported successfully
+INFO: SYSTEM: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-small-world-list-preview.png] Screenshot taken successfully
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-small-title-preview.png] File saved successfully
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-small-title-preview.png] Image exported successfully
+INFO: SYSTEM: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-small-title-preview.png] Screenshot taken successfully
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-options-preview.png] File saved successfully
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-options-preview.png] Image exported successfully
+INFO: SYSTEM: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-options-preview.png] Screenshot taken successfully
+PASS: closing title options keeps the frontend cursor available
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-multiplayer-preview.png] File saved successfully
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-multiplayer-preview.png] Image exported successfully
+INFO: SYSTEM: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-multiplayer-preview.png] Screenshot taken successfully
+INFO: VAO: [ID 2] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 3] Mesh uploaded successfully to VRAM (GPU)
+PASS: direct IP joining from the title enters a real TCP session
+PASS: joining from the title does not save the placeholder or modify local worlds
+INFO: VAO: [ID 2] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 3] Unloaded vertex array data from VRAM (GPU)
+PASS: disconnecting a title-origin session returns to the title without saving its replica
+PASS: a rejected title connection reports its error and leaves local worlds available
+PASS: a title connection can be canceled while it is pending
+PASS: the multiplayer Back button cancels pending title connections
+PASS: a late canceled connection cannot replace a new-world form or crash navigation
+INFO: VAO: [ID 2] Mesh uploaded successfully to VRAM (GPU)
+INFO: VAO: [ID 3] Mesh uploaded successfully to VRAM (GPU)
+PASS: a new title connection succeeds after cancellation
+INFO: VAO: [ID 2] Unloaded vertex array data from VRAM (GPU)
+INFO: VAO: [ID 3] Unloaded vertex array data from VRAM (GPU)
+PASS: host loss returns to the title with a visible connection error
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-connection-error-preview.png] File saved successfully
+INFO: FILEIO: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-connection-error-preview.png] Image exported successfully
+INFO: SYSTEM: [C:\dev\blockcircuit\artifacts\startup-validation\Debug/startup-connection-error-preview.png] Screenshot taken successfully
+INFO: SHADER: [ID 6] Unloaded shader program data from VRAM (GPU)
+INFO: TEXTURE: [ID 3] Unloaded texture data from VRAM (GPU)
+INFO: TEXTURE: [ID 2] Unloaded texture data from VRAM (GPU)
+INFO: SHADER: [ID 3] Default shader unloaded successfully
+INFO: TEXTURE: [ID 1] Default texture unloaded successfully
+INFO: Window closed successfully
+PASS: startup smoke: 37 checks; title, create, select, save/quit, failure/retry, TCP and GPU teardown.

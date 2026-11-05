@@ -1,0 +1,13 @@
+{
+  "Passed": true,
+  "Checks": 37,
+  "Frames": 73,
+  "LoadingFrames": 16,
+  "NativeWindow": true,
+  "IsolatedWorldLibrary": true,
+  "RealLoopbackTcp": true,
+  "AllGpuResourcesReleased": true,
+  "GpuAllocations": 33,
+  "GpuReleases": 33,
+  "Error": null
+}

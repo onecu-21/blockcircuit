@@ -15,7 +15,7 @@ sealed partial class Game
     float soloYaw,soloPitch;
     bool soloFlying;
     int soloSlot;
-    bool multiplayerOpen,profileLoaded;
+    bool multiplayerOpen,profileLoaded,joinedFromTitle;
     string networkAddress="127.0.0.1",networkPort="25565",networkName="Player",networkPassword="",networkStatus="",hostAddresses="";
     int networkField;
     Guid networkIdentity;
@@ -55,11 +55,13 @@ sealed partial class Game
     }
     void CloseMultiplayer()
     {
+        if(NetworkConnecting){LeaveMultiplayer();networkStatus="Connection canceled.";}
         multiplayerOpen=false;ResetSimulation();
-        if(paused)Raylib.EnableCursor();else Raylib.DisableCursor();
+        if(FrontendVisible||paused)Raylib.EnableCursor();else Raylib.DisableCursor();
     }
     void BeginHosting()
     {
+        if(!HasPlayableWorld){networkStatus="Open a singleplayer world before hosting it.";return;}
         try{
             if(NetworkActive||NetworkConnecting)return;
             EnsureNetworkProfile();SaveNetworkProfile();
@@ -81,8 +83,11 @@ sealed partial class Game
             if(NetworkActive||NetworkConnecting)return;
             EnsureNetworkProfile();SaveNetworkProfile();
             if(string.IsNullOrWhiteSpace(networkAddress)||networkAddress.Length>253)throw new ArgumentException("Enter the host IP address or hostname.");
-            StopStreaming(true);
-            world.Save(savePath,feet,yaw,pitch);
+            joinedFromTitle=FrontendVisible;
+            if(HasPlayableWorld){
+                StopStreaming(true);
+                world.Save(savePath,feet,yaw,pitch);
+            }
             soloWorld=world;soloFeet=feet;soloYaw=yaw;soloPitch=pitch;soloFlying=player.Flying;soloSlot=palette.SelectedSlot;
             connectCancellation=new CancellationTokenSource();
             connectTask=NetPeer.ConnectAsync(networkAddress,int.Parse(networkPort),connectCancellation.Token);
@@ -107,9 +112,13 @@ sealed partial class Game
         if(multiplayerClient is not null){
             var client=multiplayerClient;
             client.Pump(LocalNetworkPose());
-            if(client.Error is {} error){networkStatus="Disconnected: "+error;LeaveMultiplayer();Notice(networkStatus);return;}
+            if(client.Error is {} error){
+                bool showTitleError=joinedFromTitle;networkStatus="Disconnected: "+error;LeaveMultiplayer();
+                if(showTitleError)multiplayerOpen=true;
+                Notice(networkStatus);return;
+            }
             if(client.Ready&&ReferenceEquals(world,soloWorld)&&client.World is {} replica){
-                world=replica;palette.Blocks=world.Registries.Blocks;
+                world=replica;palette.Blocks=world.Registries.Blocks;startup.EnterWorld();
                 if(client.LocalPose is {} spawn){feet=spawn.Position;yaw=spawn.Yaw;pitch=spawn.Pitch;player.Flying=spawn.Flying;}
                 player.VerticalVelocity=0;paused=false;ResetSimulation();SyncHotbar();
                 networkStatus="Connected. F8 to leave.";
@@ -140,6 +149,12 @@ sealed partial class Game
             world=soloWorld;soloWorld=null;palette.Blocks=world.Registries.Blocks;
             feet=soloFeet;yaw=soloYaw;pitch=soloPitch;player.Flying=soloFlying;palette.SelectedSlot=soloSlot;
             player.VerticalVelocity=0;ResetSimulation();SyncHotbar();
+        }
+        if(joinedFromTitle){
+            startup.ReturnToTitle();activeEntry=null;activeSavePath=null;
+            if(renderer is not null)renderer.ResetWorldCache();
+            if(Raylib.IsWindowReady())Raylib.EnableCursor();
+            joinedFromTitle=false;
         }
         peerMotion.Clear();inventoryGesture.Cancel();lastNetworkReply=0;
     }
@@ -223,7 +238,7 @@ sealed partial class Game
         int w=Math.Min(760,Raylib.GetScreenWidth()-48),h=510,x=(Raylib.GetScreenWidth()-w)/2,y=(Raylib.GetScreenHeight()-h)/2;
         Raylib.DrawRectangle(0,0,Raylib.GetScreenWidth(),Raylib.GetScreenHeight(),new Color(9,16,24,220));Raylib.DrawRectangle(x,y,w,h,ink);Raylib.DrawRectangle(x,y,4,h,accent);
         Raylib.DrawText("MULTIPLAYER",x+26,y+22,28,Color.White);
-        DrawTextFit("Open this world, or join a host by IP address. Shared worlds keep running in menus.",x+26,y+63,14,w-52,muted);
+        DrawTextFit(HasPlayableWorld?"Open this world, or join a host by IP address. Shared worlds keep running in menus.":"Join a host by IP address. To host a world, open it from Singleplayer first.",x+26,y+63,14,w-52,muted);
         string[] labels=["PLAYER NAME","HOST IP / HOSTNAME","TCP PORT","PASSWORD (optional)"];
         string[] values=[networkName,networkAddress,networkPort,networkPassword];
         for(int i=0;i<4;i++){
@@ -244,10 +259,10 @@ sealed partial class Game
         DrawTextFit(networkStatus.Length==0?"Host uses the current world. Joining preserves your local singleplayer save.":networkStatus,x+26,y+354,14,w-52,accent);
         if(NetworkActive||NetworkConnecting){
             DrawTextFit($"Players: {1+(multiplayerHost?.ClientCount??OtherPlayers().Count())} / 9"+(multiplayerHost is null||hostAddresses.Length==0?"":"  |  Host IP: "+hostAddresses),x+26,y+385,14,w-52,muted);
-            if(Button(new(x+26,y+h-67,240,40),NetworkActive?"LEAVE / CLOSE SESSION":"CANCEL CONNECTION")){LeaveMultiplayer();networkStatus="Returned to singleplayer.";Notice(networkStatus);}
+            if(Button(new(x+26,y+h-67,240,40),NetworkActive?"LEAVE / CLOSE SESSION":"CANCEL CONNECTION")){LeaveMultiplayer();networkStatus=FrontendVisible?"Disconnected. Connect again or choose a world.":"Returned to singleplayer.";Notice(networkStatus);}
         }else{
-            if(Button(new(x+26,y+h-67,180,40),"HOST WORLD",true))BeginHosting();
-            if(Button(new(x+220,y+h-67,180,40),"JOIN BY IP"))BeginJoining();
+            if(HasPlayableWorld&&Button(new(x+26,y+h-67,180,40),"HOST WORLD",true))BeginHosting();
+            if(Button(new(x+(HasPlayableWorld?220:26),y+h-67,HasPlayableWorld?180:374,40),"JOIN BY IP",!HasPlayableWorld))BeginJoining();
         }
         if(Button(new(x+w-142,y+h-67,116,40),"BACK"))CloseMultiplayer();
     }

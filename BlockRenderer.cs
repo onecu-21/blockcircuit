@@ -397,6 +397,8 @@ public sealed class BlockRenderer : IDisposable
         ReleasedMeshCount += cached.Opaque.ReleasedMeshCount + cached.Transparent.ReleasedMeshCount - before;
     }
 
+    public void ResetWorldCache(){RequireRenderThread();ObjectDisposedException.ThrowIf(disposed,this);ClearCache();source=null;}
+
     void ClearCache()
     {
         backgroundMeshes.Reset();

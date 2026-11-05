@@ -20,7 +20,7 @@ sealed partial class Game
     void CloseSettings()
     {
         settingsOpen = false;
-        if (paused || inventoryOpen) Raylib.EnableCursor();
+        if (FrontendVisible || paused || inventoryOpen) Raylib.EnableCursor();
         else Raylib.DisableCursor();
     }
 

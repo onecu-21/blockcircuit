@@ -8,7 +8,7 @@ sealed partial class Game
     Exception? reportedStreamingError;
     void EnsureStreaming()
     {
-        if (NetworkClientActive||NetworkConnecting||!world.IsStreaming) return;
+        if ((!HasPlayableWorld&&!preparingWorld)||NetworkClientActive||NetworkConnecting||!world.IsStreaming) return;
         if (!ReferenceEquals(streamedWorld, world) || streamer is null || !ReferenceEquals(world.ActiveStreamer, streamer))
         {
             streamer?.Dispose();

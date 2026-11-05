@@ -8,6 +8,10 @@ C# / .NET 10 + Raylib로 만든 싱글플레이·IP 직접 접속 멀티플레�
 
 추가 개발에서는 **고정 20틱 시뮬레이션, 변경된 회로망만 갱신하는 회로 계산, 실행 취소·다시 실행, 충돌이 적용되는 비행과 설정 화면**을 제공합니다. 퀵바 구성과 화면·마우스 설정도 다음 실행에 유지됩니다.
 
+## 처음 실행
+
+타이틀에서 **Singleplayer → 월드 선택 / Create New World → Game·World 설정 → 입장**으로 진행합니다. **Esc → Save and Quit to Title**로 저장하고 돌아올 수 있습니다. 기존 저장도 목록에서 열 수 있으며, 새 월드를 만들어도 이전 월드는 별도 보존합니다. [화면과 검증 기록](docs/validation/startup-ux/README.md), [자세한 사용 안내](docs/startup-ux.md).
+
 ## 그래픽·자연 지형 업데이트
 
 ![새 조명과 시드 2026 자연 지형의 실제 게임 화면](terrain-preview.png)
@@ -15,9 +19,9 @@ C# / .NET 10 + Raylib로 만든 싱글플레이·IP 직접 접속 멀티플레�
 
 태양 방향에 따른 따뜻한 조명과 주변광, 카메라 각도를 따라가는 하늘·태양, 거리 안개를 적용했습니다. 잔디·흙·돌·잎의 과한 픽셀 잡음과 격자 이음새를 줄였습니다. **F1**로 HUD를 숨겨 풍경을 볼 수 있습니다.
 
-저장 파일이 없는 새 게임은 시드 **2026**의 자연 지형으로 시작합니다. 여러 크기의 노이즈와 좌표 왜곡, 능선 패턴을 조합해 높낮이를 만들고, 경사·습도에 따라 표면과 나무를 배치합니다. 지하에는 3차원 노이즈 기반 동굴이 생성됩니다. 자세한 구현과 참고 자료는 [GRAPHICS-TERRAIN.md](GRAPHICS-TERRAIN.md)에 있습니다.
+새 월드는 생성 화면에서 이름·시드·지형을 정해 만듭니다. Natural 지형은 여러 크기의 노이즈와 좌표 왜곡, 능선 패턴을 조합해 높낮이를 만들고, 경사·습도에 따라 표면과 나무를 배치합니다. 지하에는 3차원 노이즈 기반 동굴이 생성됩니다. 자세한 구현과 참고 자료는 [GRAPHICS-TERRAIN.md](GRAPHICS-TERRAIN.md)에 있습니다.
 
-**F6 → NATURAL → 시드 입력 → CREATE NEW WORLD**로 새 지형을 만들 수 있습니다. 입력 칸은 **Ctrl+A**로 지우고 정수를 입력하거나 **RANDOM**으로 바꿉니다. 생성 전에 현재 월드를 저장 폴더의 `backups/`에 보관합니다. 기존 저장 월드는 원래 블록 상태를 보존해 불러옵니다. 기존 영역 밖에는 스트리밍 지형을 생성하며, 모래·붉은 모래·자갈에는 중력을 적용합니다. 백업을 복원하려면 게임을 종료하고 백업 파일을 `world.json`으로 복사하세요.
+기존 저장 월드는 원래 블록 상태를 보존해 불러옵니다. 기존 영역 밖에는 스트리밍 지형을 생성하며, 모래·붉은 모래·자갈에는 중력을 적용합니다. 월드마다 별도 저장 폴더를 사용하므로 새 월드를 만들어도 이전 월드를 덮어쓰지 않습니다.
 
 최신 검증 빌드는 저장소의 **Actions → 성공한 Build and validate 실행 → Artifacts → BlockCircuit-windows-x64**에서 받을 수 있습니다. 압축을 모두 풀고 `BlockCircuit.exe`를 실행합니다. Windows의 빌드와 그래픽 없는 검사는 자동 실행하며, OpenGL 그래픽 검사는 Linux 소프트웨어 렌더러에서 수행합니다.
 
@@ -29,13 +33,13 @@ C# / .NET 10 + Raylib로 만든 싱글플레이·IP 직접 접속 멀티플레�
 
 ## Windows 실행
 
-`BlockCircuit-windows-x64.zip`을 **전체 압축 해제**하고 `BlockCircuit.exe`를 실행하세요. .NET을 별도로 설치할 필요가 없습니다. Windows x64와 OpenGL 3.3을 지원하는 그래픽 환경이 필요합니다. Windows 배포본은 교차 빌드하며, 실제 Windows에서의 실행은 검증하지 않았습니다.
+`BlockCircuit-windows-x64.zip`을 **전체 압축 해제**하고 `BlockCircuit.exe`를 실행하세요. .NET을 별도로 설치할 필요가 없습니다. Windows x64와 OpenGL 3.3을 지원하는 그래픽 환경이 필요합니다. 이번 시작 UX는 Windows에서 실제 OpenGL 창으로 검증했습니다. self-contained 배포본 실행과 원격 CI 결과는 별도로 확인해야 합니다.
 
 ## IP 직접 접속 멀티플레이
 
-**F8**에서 호스트는 **HOST WORLD**, 참가자는 호스트 IP·포트·비밀번호를 입력하고 **JOIN BY IP**를 누릅니다. 기본 포트는 TCP **25565**, 최대 **호스트 1명 + 참가자 8명**입니다. 같은 PC에서는 127.0.0.1, 같은 네트워크의 다른 PC에서는 호스트의 LAN IP를 사용합니다.
+타이틀의 **Multiplayer**에서 호스트 IP·포트·비밀번호를 입력하고 **JOIN BY IP**를 누르면 개인 월드를 열지 않고 접속합니다. 호스트는 Singleplayer에서 공유할 월드를 연 다음 **F8 → HOST WORLD**를 선택합니다. 기본 포트는 TCP **25565**, 최대 **호스트 1명 + 참가자 8명**입니다. 같은 PC에서는 127.0.0.1, 같은 네트워크의 다른 PC에서는 호스트의 LAN IP를 사용합니다.
 
-공동 건축·광질·회로와 플레이어 위치를 공유하고, 인벤토리·제작 재료는 플레이어별로 유지합니다. 다시 접속하면 같은 로컬 프로필의 소지품을 복원합니다. 참가 전에 개인 월드를 저장하며 **F8 → LEAVE / CLOSE SESSION**으로 돌아옵니다. 공유 월드 저장은 호스트가 담당합니다. 인터넷 접속은 해당 TCP 포트가 호스트까지 연결되도록 사용자가 네트워크를 설정해야 합니다.
+공동 건축·광질·회로와 플레이어 위치를 공유하고, 인벤토리·제작 재료는 플레이어별로 유지합니다. 다시 접속하면 같은 로컬 프로필의 소지품을 복원합니다. 개인 월드에서 참가할 때는 그 월드를 먼저 저장하고 **F8 → LEAVE / CLOSE SESSION**으로 돌아옵니다. 타이틀에서 참가했다면 종료 후 타이틀로 돌아갑니다. Esc의 **Disconnect**도 타이틀로 돌아갑니다. 공유 월드 저장은 호스트가 담당합니다. 인터넷 접속은 해당 TCP 포트가 호스트까지 연결되도록 사용자가 네트워크를 설정해야 합니다.
 
 [접속 방법과 기능 범위](docs/multiplayer.md), [실제 TCP·그래픽 검증](docs/validation/multiplayer/README.md)을 참고하세요.
 
@@ -62,7 +66,7 @@ C# / .NET 10 + Raylib로 만든 싱글플레이·IP 직접 접속 멀티플레�
 | Space 두 번 | 비행 켜기/끄기; 블록과 충돌 유지 |
 | 비행 중 Space / 왼쪽 Shift | 상승 / 하강 |
 | F1 | HUD 표시/숨기기 |
-| F6 | 시드와 지형 방식을 선택해 새 월드 생성; 현재 월드 자동 백업 |
+| F6 | 현재 월드를 저장하고 타이틀로 나와 별도 새 월드 생성 화면 열기 |
 | F8 | IP 멀티플레이 호스트·접속·종료 |
 | F3 | 엔진 디버그 정보 표시/숨기기 |
 | F4 | 회로 디버그 정보와 신호 세기 표시/숨기기 |
@@ -70,7 +74,7 @@ C# / .NET 10 + Raylib로 만든 싱글플레이·IP 직접 접속 멀티플레�
 | F5 | 1인칭 → 후방 3인칭 → 정면 3인칭 |
 | Ctrl+S / Ctrl+O | 월드 저장 / 불러오기 |
 | F10 | 설정 화면 열기/닫기 |
-| Esc | 열린 화면 닫기 또는 일시정지/재개 |
+| Esc | 열린 화면 닫기 또는 게임 메뉴; 저장 후 타이틀 복귀 선택 가능 |
 | 창 닫기 | 자동 저장 후 종료 |
 
 인벤토리와 제작창에서는 이동과 광질이 일시정지됩니다. 왼쪽 클릭으로 이동·병합·교환하고 오른쪽 클릭으로 분할·하나 놓기, 드래그로 분배, Shift 클릭으로 빠르게 옮깁니다. 결과를 클릭하면 재료를 소비해 제작하고 Shift 결과 클릭은 공간이 허용하는 만큼 반복합니다. 제작 재료와 커서의 아이템도 저장됩니다. 자세한 조작과 34개 JSON 레시피는 [인벤토리·제작 문서](docs/inventory.md)에 있습니다.
@@ -91,7 +95,7 @@ Registry 등록·이벤트·모드 ID 보존은 [Registry API](docs/registries.m
 
 **F10**에서 목표 FPS(30/60/120/144/240/무제한), 시야각(60–100도), 마우스 감도, 그리기 거리(32–128블록)를 바꿀 수 있습니다. 기본값은 60 FPS, 시야각 72도, 감도 1.00배, 그리기 거리 64블록입니다. 감도 조정 범위는 0.40–2.40배입니다. FPS 설정과 관계없이 이동·광질·설치·회로 변경은 초당 20틱으로 처리합니다.
 
-설정 변경은 즉시 적용됩니다. **SAVE**를 누르면 설정과 퀵바 9칸·선택 슬롯을 월드 파일과 같은 폴더의 `settings.json`에 보관합니다. Ctrl+S 또는 정상 종료 시에도 월드와 함께 저장합니다. **RESET DEFAULTS**는 설정과 퀵바를 기본값으로 되돌립니다. 설정 파일이 없으면 기본값으로 시작하고, 읽을 수 없거나 형식이 잘못된 경우에는 기본 설정으로 시작하며 안내를 표시합니다.
+설정 변경은 즉시 적용됩니다. **SAVE**를 누르면 설정과 퀵바 9칸·선택 슬롯을 앱 데이터 폴더의 `settings.json`에 보관합니다. Ctrl+S 또는 월드를 정상 종료할 때도 함께 저장합니다. **RESET DEFAULTS**는 설정과 퀵바를 기본값으로 되돌립니다. 설정 파일이 없으면 기본값으로 시작하고, 읽을 수 없거나 형식이 잘못된 경우에는 기본 설정으로 시작하며 안내를 표시합니다.
 
 ## 블록 라이브러리
 
@@ -114,17 +118,23 @@ Registry 등록·이벤트·모드 ID 보존은 [Registry API](docs/registries.m
 
 ## 월드와 저장
 
+처음 실행하면 **Singleplayer / Multiplayer / Options / Quit Game** 타이틀이 나옵니다. Singleplayer에서 저장한 월드를 선택하거나 **Create New World**로 새 월드를 만듭니다. 저장한 월드가 하나도 없으면 생성 화면부터 열리며, Cancel을 누르면 빈 목록으로 돌아갑니다. 타이틀과 목록을 보는 동안에는 지형을 생성하거나 월드 저장 파일을 쓰지 않습니다.
+
+생성 화면의 **Game** 탭에서 월드 이름을 정하고 **World** 탭에서 시드와 **Natural / Classic** 지형을 선택합니다. 시드는 -2147483648–2147483647 정수이며 비워 두면 무작위로 정합니다. Classic은 기존 시작 지형에서 출발하고 그 바깥에는 새 지형이 이어집니다. **Ctrl+Tab / Ctrl+1 / Ctrl+2**로 탭을 바꿀 수 있습니다. Game Mode는 현재 구현된 Sandbox입니다.
+
+월드 목록은 이름 검색·선택·더블 클릭 입장을 지원합니다. **Edit → Save Name / Make Backup**으로 이름 변경과 백업을 하고, **Delete**는 확인 후 해당 월드만 `trash/`로 옮깁니다. 게임 안에서는 **Esc → Save and Quit to Title**로 저장하고 타이틀로 돌아갈 수 있습니다. 저장에 실패하면 오류를 표시하며 현재 월드를 유지합니다. 조사한 공식 흐름과 화면별 동작은 [처음 실행 UX](docs/startup-ux.md)에 정리했습니다.
+
 플레이어 이동에 따라 16×16 열의 청크 지형과 지하 통로가 이어집니다. 아직 로드되지 않은 지형은 충돌 경계로 처리하며 준비된 뒤 이동할 수 있습니다. 새 월드는 시드에 따른 산지·평지·지하 동굴과 광석·나무가 생성됩니다. 플레이어에게 중력과 블록 충돌이 적용되며, 바닥 기반암은 캘 수 없습니다.
 
-저장 파일이 있으면 시작할 때 자동으로 불러옵니다. Ctrl+O를 누르면 마지막 저장 상태로 돌아가고, 창을 닫으면 현재 상태를 자동 저장합니다.
+저장한 월드는 목록에서 선택해 불러옵니다. 플레이 중 Ctrl+O를 누르면 해당 월드의 마지막 저장 상태로 돌아가고, 창을 닫으면 현재 상태를 자동 저장합니다.
 
-저장 위치는 Windows의 `%LOCALAPPDATA%\BlockCircuit\world.json`, Linux의 `~/.local/share/BlockCircuit/world.json`입니다. 정확한 위치는 .NET의 `LocalApplicationData` 경로를 따릅니다.
+앱 데이터 위치는 Windows의 `%LOCALAPPDATA%\BlockCircuit`, Linux의 `~/.local/share/BlockCircuit`이며 .NET의 `LocalApplicationData` 경로를 따릅니다. 새 월드는 그 아래 `worlds/<GUID>/world.json`과 `world-info.json`에 저장합니다. 같은 이름을 사용해도 서로 다른 폴더를 갖습니다. `settings.json`, `multiplayer-profile.json`, `backups/`, `trash/`는 앱 데이터 폴더에 둡니다.
 
-같은 폴더의 `game.log`에는 저장 결과나 설정·불러오기 오류를 기록합니다. 오류 안내가 나오면 이 파일로 원인을 확인할 수 있습니다.
+앱 데이터 루트의 `game.log`에는 저장 결과나 설정·불러오기 오류를 기록합니다. 오류 안내가 나오면 이 파일로 원인을 확인할 수 있습니다.
 
-**이전 버전의 저장 파일도 불러올 수 있습니다.** 기존 지형, 블록 수량, 회로와 플레이어 위치를 유지합니다. v1 저장을 이행할 때는 당시 없던 블록의 시작 수량도 채웁니다. 기존 영역은 다시 생성하지 않으며, 그 바깥의 새로 생성되는 영역에는 광석과 나무도 배치합니다. 새 지형으로 시작하려면 게임을 종료하고 `world.json`을 다른 이름으로 옮겨 보관한 뒤 다시 실행하세요. 퀵바 구성은 별도의 `settings.json`에서 유지합니다.
+**이전 버전의 저장 파일도 불러올 수 있습니다.** 앱 데이터 폴더에 있던 `world.json` 또는 복구용 `world.json.bak`를 기존 월드 항목으로 발견하며, 목록을 여는 것만으로 원본을 옮기거나 다시 쓰지 않습니다. 기존 지형, 블록 수량, 회로와 플레이어 위치를 유지합니다. v1 저장을 이행할 때는 당시 없던 블록의 시작 수량도 채웁니다. 기존 영역은 다시 생성하지 않으며, 그 바깥의 새로 생성되는 영역에는 광석과 나무도 배치합니다. 퀵바 구성은 별도의 `settings.json`에서 유지합니다.
 
-현재 저장 형식은 **v4**입니다. `world.json`에는 월드 메타데이터와 청크 참조를, `world.json.chunks/`에는 16³ 청크별 문자열 ID 팔레트와 상태를 저장합니다. 변경된 청크만 새 파일로 쓰며, 저장 완료 전에는 이전 파일을 유지합니다. 기존 v1/v2/v3 파일도 읽고, v4로 처음 저장할 때 원본을 `backups/`에 보존합니다. 손상된 현재 저장은 검증된 `world.json.bak`로 복구할 수 있습니다. 일반 v4 저장을 옮길 때는 JSON과 `.chunks/`, `.bak`를 함께 보관하세요. 새 월드 생성 시 만드는 v3 백업은 단독 복원이 가능한 파일입니다. 자세한 형식과 제한은 [저장 문서](docs/storage.md)에 있습니다.
+현재 저장 형식은 **v4**입니다. `world.json`에는 월드 메타데이터와 청크 참조를, `world.json.chunks/`에는 16³ 청크별 문자열 ID 팔레트와 상태를 저장합니다. 변경된 청크만 새 파일로 쓰며, 저장 완료 전에는 이전 파일을 유지합니다. 기존 v1/v2/v3 파일도 읽고, v4로 처음 저장할 때 원본을 `backups/`에 보존합니다. 손상된 현재 저장은 검증된 `world.json.bak`로 복구할 수 있습니다. 일반 v4 저장이나 Trash 항목을 옮길 때는 JSON과 `.chunks/`, `.bak`를 함께 보관하세요. **Make Backup**이 만드는 v3 백업은 단독 복원이 가능한 파일이며, 게임을 종료한 뒤 복원할 월드 폴더의 `world.json`으로 복사할 수 있습니다. 자세한 형식과 제한은 [저장 문서](docs/storage.md)에 있습니다.
 
 ## 회로 만들기
 
@@ -157,6 +167,8 @@ dotnet run -c Release -- --controls-tests
 dotnet run -c Release -- --streaming-tests
 dotnet run -c Release -- --inventory-tests
 dotnet run -c Release -- --multiplayer-tests
+dotnet run -c Release -- --startup-tests
+dotnet run -c Release -- --startup-smoke-test
 dotnet run -c Release -- --benchmark
 dotnet run -c Release -- --circuit-benchmark
 dotnet run -c Release -- --physics-benchmark
@@ -169,7 +181,7 @@ dotnet run -c Release -- --multiplayer-session-benchmark
 dotnet run -c Release -- --streaming-soak-test
 ```
 
-헤드리스 검사는 기본 45개, 엔진 168개, 게임플레이 91개, 지형 55개, 조작 38개, 스트리밍 128개, 인벤토리·제작 63개, 멀티플레이 63개로 **총 651개**입니다. Debug/Release에서 모두 통과했으며, 실제 OpenGL 검사 10모드도 통과했습니다. [Phase05](docs/validation/phase05/README.md)와 [멀티플레이 검증 기록](docs/validation/multiplayer/README.md)에 수량 보존·저장 이행·성능 결과를 보존했습니다.
+현재 Debug/Release에서 기본 45개, 엔진 168개, 게임플레이 91개, 지형 55개, 조작 38개, 스트리밍 128개, 인벤토리·제작 63개, 멀티플레이 63개, 시작 UX 56개로 **각각 총 707개**가 통과했습니다. 실제 OpenGL 검사 11모드와 새 시작 흐름의 네이티브 검사 37개도 통과했습니다. [시작 UX 검증 기록](docs/validation/startup-ux/README.md)에 로그와 화면을, [Phase05](docs/validation/phase05/README.md)와 [멀티플레이 검증 기록](docs/validation/multiplayer/README.md)에 기존 수량 보존·저장 이행·성능 결과를 보존했습니다.
 
 `--benchmark`는 CPU 메시 생성과 편집 부하를 `benchmark-results.json`에, `--circuit-benchmark`는 회로 계산 부하를 `circuit-benchmark-results.json`에 기록합니다. CPU 벤치마크와 실제 GPU의 FPS 측정은 구분합니다. 검사 결과와 측정 범위는 [엔진 노트](ENGINE-NOTES.md)에 있습니다.
 

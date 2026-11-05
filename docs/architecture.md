@@ -1,7 +1,19 @@
 # BlockCircuit 아키텍처 — Phase 00 기준선
 
 기준일: 2026-11-04 (Asia/Seoul). 기준 소스: 5e9823a9d45ff2ad93b86f8dd8e5b7d56f337433.
-확장 전 코드의 상태를 기록한다. 현재 시간/물리/입력 계약은 [physics.md](physics.md), Registry/API는 [registries.md](registries.md), 청크/저장은 [storage.md](storage.md), 현재 스트리밍·낙하는 [streaming.md](streaming.md)와 [falling-blocks.md](falling-blocks.md)를 따른다. 슬롯 인벤토리·제작은 [inventory.md](inventory.md), 직접 접속과 호스트 권한·복제는 [multiplayer.md](multiplayer.md)를 따른다. 후속 단계는 [roadmap.md](roadmap.md), 측정 원본은 [기준선 기록](baseline/2026-11-04/README.md)을 따른다.
+확장 전 코드의 상태를 기록한다. 현재 시간/물리/입력 계약은 [physics.md](physics.md), Registry/API는 [registries.md](registries.md), 청크/저장은 [storage.md](storage.md), 현재 스트리밍·낙하는 [streaming.md](streaming.md)와 [falling-blocks.md](falling-blocks.md)를 따른다. 슬롯 인벤토리·제작은 [inventory.md](inventory.md), 직접 접속과 호스트 권한·복제는 [multiplayer.md](multiplayer.md), 현재 시작·월드 선택 흐름은 [startup-ux.md](startup-ux.md)를 따른다. 후속 단계는 [roadmap.md](roadmap.md), 측정 원본은 [기준선 기록](baseline/2026-11-04/README.md)을 따른다.
+
+## 현재 시작 화면과 월드 세션
+
+일반 실행은 타이틀에서 시작하며 저장 파일을 자동으로 열거나 새 지형을 생성하지 않는다. `StartupFlow`가 Title → Worlds/CreateWorld → Loading → Playing 전환과 뒤로 가기·실패 복귀를 검증한다. `Core/FrontendScreens.cs`와 `FrontendControls.cs`는 타이틀·목록·생성·편집·삭제 확인·로딩·Esc 메뉴를 그린다. `MenuText`는 텍스트 편집 상태를 네이티브 창과 분리한다. `Core/NewWorldPanel.cs`의 Game/World 탭은 이름과 실제 지원하는 시드·Natural/Classic 설정을 받는다.
+
+`WorldLibrary`는 앱 데이터 폴더의 월드 목록과 설명을 관리한다. 새 저장은 `worlds/<GUID>/world.json`, 설명은 같은 폴더의 `world-info.json`이다. 표시 이름을 파일 경로로 쓰지 않으며 동일 이름도 독립된 저장을 갖는다. 기존 루트 `world.json`/`.bak`는 원래 위치에서 발견한다. 목록 읽기는 메타데이터만 읽고 지형 로드·원본 이행을 수행하지 않는다. 명시적인 열기·이름 변경·백업·확인 후 Trash 이동이 별도 작업이다. 앱 설정과 멀티플레이 프로필은 공통 루트에 둔다.
+
+`FrontendSession`은 최소 한 번 로딩 화면을 그린 뒤 파일 읽기·월드 생성을 작업 스레드에서 시작한다. 준비된 월드는 렌더링 스레드가 인수하고 스폰 주변 스트리밍과 GPU 메시가 준비된 후에만 플레이로 전환한다. 대기 중에는 게임 입력과 일반 월드 틱을 실행하지 않는다. 실패하면 후보 월드와 GPU 캐시를 정리하고 선택/생성 화면으로 돌아간다. 입장에 쓴 마우스·Enter 입력이 해제될 때까지 광질·설치 입력을 막는다.
+
+Esc의 Save and Quit to Title은 저장 성공 뒤 스트리머·GPU 캐시·활성 경로를 해제한다. 저장 실패는 활성 월드를 유지해 재시도할 수 있게 한다. 타이틀에서 IP 접속할 때는 개인 월드 저장을 만들지 않으며, 접속 종료 후 타이틀로 돌아온다. 연결 중 Back은 대기 요청을 취소하고, 호스트 종료 오류는 타이틀 접속 패널에 표시한다. 공유 월드를 호스팅하려면 먼저 Singleplayer 월드를 연다. 실제 세션 저장 권한과 복제 규칙은 기존 멀티플레이 계약을 따른다.
+
+아래 나머지 내용은 Phase 00 당시의 기준선이며, 위에 링크한 현재 기능 문서와 구분한다.
 
 ## 런타임과 구성
 

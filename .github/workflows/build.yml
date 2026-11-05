@@ -23,6 +23,7 @@ jobs:
           dotnet bin/Release/net10.0/BlockCircuit.dll --streaming-tests
           dotnet bin/Release/net10.0/BlockCircuit.dll --inventory-tests
           dotnet bin/Release/net10.0/BlockCircuit.dll --multiplayer-tests
+          dotnet bin/Release/net10.0/BlockCircuit.dll --startup-tests
       - name: Install software OpenGL display
         run: sudo apt-get update && sudo apt-get install -y xvfb libgl1 libgl1-mesa-dri libx11-6 libxrandr2 libxinerama1 libxcursor1 libxi6
       - name: Native graphics regression
@@ -37,6 +38,7 @@ jobs:
           xvfb-run -a dotnet bin/Release/net10.0/BlockCircuit.dll --streaming-smoke-test
           xvfb-run -a dotnet bin/Release/net10.0/BlockCircuit.dll --inventory-smoke-test
           xvfb-run -a dotnet bin/Release/net10.0/BlockCircuit.dll --multiplayer-smoke-test
+          xvfb-run -a dotnet bin/Release/net10.0/BlockCircuit.dll --startup-smoke-test
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -63,6 +65,7 @@ jobs:
           dotnet bin/Release/net10.0/BlockCircuit.dll --streaming-tests
           dotnet bin/Release/net10.0/BlockCircuit.dll --inventory-tests
           dotnet bin/Release/net10.0/BlockCircuit.dll --multiplayer-tests
+          dotnet bin/Release/net10.0/BlockCircuit.dll --startup-tests
       - run: dotnet publish -c Release -r win-x64 --self-contained true -o dist/windows
       - name: Include documentation and native runtime
         shell: pwsh

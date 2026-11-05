@@ -17,9 +17,9 @@ $target = & dotnet msbuild $project -nologo "-p:Configuration=$Configuration" $b
 if ($LASTEXITCODE -ne 0) { throw 'Cannot resolve assembly path' }
 $assembly = ($target | Out-String).Trim()
 if (!(Test-Path -LiteralPath $assembly)) { throw "Missing assembly: $assembly" }
-$suites = @('self-test', 'engine-tests', 'gameplay-tests', 'terrain-tests', 'controls-tests', 'streaming-tests', 'inventory-tests', 'multiplayer-tests')
+$suites = @('self-test', 'engine-tests', 'gameplay-tests', 'terrain-tests', 'controls-tests', 'streaming-tests', 'inventory-tests', 'multiplayer-tests', 'startup-tests')
 if ($Benchmarks) { $suites += @('benchmark', 'circuit-benchmark', 'physics-benchmark', 'storage-benchmark', 'streaming-benchmark', 'falling-benchmark', 'inventory-benchmark', 'multiplayer-benchmark', 'multiplayer-session-benchmark') }
-if ($Graphics) { $suites += @('smoke-test', 'palette-smoke-test', 'showcase-smoke-test', 'terrain-smoke-test', 'engine-smoke-test', 'gameplay-smoke-test', 'controls-smoke-test', 'streaming-smoke-test', 'inventory-smoke-test', 'multiplayer-smoke-test') }
+if ($Graphics) { $suites += @('smoke-test', 'palette-smoke-test', 'showcase-smoke-test', 'terrain-smoke-test', 'engine-smoke-test', 'gameplay-smoke-test', 'controls-smoke-test', 'streaming-smoke-test', 'inventory-smoke-test', 'multiplayer-smoke-test', 'startup-smoke-test') }
 Push-Location $out
 try {
     foreach ($suite in $suites) {

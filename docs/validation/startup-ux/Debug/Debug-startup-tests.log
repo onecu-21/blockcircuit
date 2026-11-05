@@ -1,0 +1,58 @@
+PASS: opening an empty world library does not create a world or write its data directory
+PASS: duplicate world names and seeds still receive independent saved-world folders
+PASS: a new natural world has its own seed, streaming generator and real slot inventory
+PASS: created named worlds are listed without silently entering either world
+PASS: a world name is not used as its directory path
+PASS: opening a selected world restores its saved seed, player inventory and position
+PASS: editing one world cannot change another world with the same name and seed
+PASS: re-entering a selected world preserves its blocks and camera independently
+PASS: classic generation is a real alternate terrain choice and retains the chosen seed
+PASS: classic worlds round trip through their own save
+PASS: renaming changes catalog metadata without rewriting terrain or inventory
+PASS: renaming a world does not rename another world's display label
+PASS: last-played metadata is persisted for returning to the world list
+PASS: invalid creation and rename inputs leave all existing files unchanged
+PASS: path-like display names are rejected or remain inside GUID-owned world folders
+PASS: one corrupt world description is visible as an error without hiding healthy worlds
+PASS: an unreadable selected world cannot alter another saved world
+PASS: removing a world with an active save lock fails without losing its catalog entry or save
+PASS: confirmed removal moves a whole world into recoverable library trash
+PASS: a trashed world remains loadable while other worlds and application settings remain intact
+PASS: an explicit world backup is a standalone file with streamed edits and slot state
+PASS: making a backup does not rewrite the source world or its last-played metadata
+PASS: existing world.json is discovered without rewriting it, its chunk files, recovery save or settings
+PASS: opening the legacy entry restores existing blocks, slot cursor and camera rather than generating new terrain
+PASS: creating a new catalog world leaves the original legacy save in its original location
+PASS: removing a legacy entry archives only that world's artifacts and preserves settings and newer catalog worlds
+PASS: a legacy recovery save remains discoverable when the current world.json is missing
+PASS: a filesystem failure while creating a world does not overwrite existing application files
+World library tests passed: 28
+PASS: first launch starts on the title without an active world
+PASS: a load cannot bypass world selection from the title screen
+PASS: singleplayer with no worlds opens the explicit create-world flow
+PASS: canceling first creation returns to an empty selectable world list
+PASS: back from the world list returns to the title without starting play
+PASS: back during a committed load cannot expose play or discard an in-progress operation
+PASS: a world cannot be deleted while its create or load operation is running
+PASS: failed creation restores the form with the actual error and no active world
+PASS: only a successful explicit create or open publishes a playable world
+PASS: ordinary back navigation does not silently abandon an active world
+PASS: the session owner can return to the title after a successful save-and-quit
+PASS: a listed world cannot become active before its loading step
+PASS: a failed existing-world open returns to the world list with its error
+PASS: canceling world details returns to selection without entering play
+PASS: canceling delete confirmation returns to selection without starting a world
+PASS: a successfully connected multiplayer session can enter directly from the title
+PASS: the click that confirmed a world cannot immediately mine in the newly entered world
+PASS: holding Enter after world selection keeps gameplay input gated
+PASS: gameplay resumes only after an entire released-input frame
+PASS: Ctrl+A followed by typing or paste replaces the whole world name
+PASS: cursor insertion, backspace and delete edit a world name at the intended position
+PASS: pasted line breaks and control characters cannot become a world name
+PASS: name paste respects the same 64-character limit as storage validation
+PASS: cursor movement and delete preserve complete Unicode scalar boundaries
+PASS: backspace removes an entire supplementary Unicode character rather than half a surrogate pair
+PASS: maximum-length truncation never publishes half of a supplementary character
+PASS: existing gameplay smoke scenarios can explicitly bypass the title
+PASS: explicit gameplay smoke initialization does not inherit a nonexistent menu click gate
+Startup flow tests passed: 28

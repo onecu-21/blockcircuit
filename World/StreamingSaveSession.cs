@@ -96,6 +96,8 @@ internal sealed class StreamingSaveSession : IDisposable
     }
     public void Flush(Vector3 player, float facing, float elevation)
     {
+        // A new explicit save retries an earlier completed failure after its cause has been fixed.
+        if(!Busy)LastError=null;
         while (Busy)
         {
             Pump(int.MaxValue);

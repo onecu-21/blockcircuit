@@ -1,89 +1,57 @@
-using System.Globalization;
 using Raylib_cs;
 using BlockCircuit;
 
 sealed partial class Game
 {
-    bool newWorldOpen, classicTerrain;
-    string newWorldSeed = "731";
-    string newWorldStatus = "";
-
+    bool newWorldOpen,classicTerrain;
+    string newWorldStatus="";
     void OpenNewWorld()
     {
-        if(NetworkActive||NetworkConnecting){Notice("Leave multiplayer with F8 before creating another world.");return;}
-        newWorldOpen = true;
-        newWorldSeed = world.Seed.ToString(CultureInfo.InvariantCulture);
-        classicTerrain = false;
-        newWorldStatus = "";
-        settingsOpen = inventoryOpen = false;
-        ResetSimulation();
-        Raylib.EnableCursor();
+        if(NetworkActive||NetworkConnecting){Notice("Leave multiplayer before creating another world.");return;}
+        if(HasPlayableWorld&&!SaveAndReturnToTitle())return;
+        if(startup.Screen==StartupScreen.Title)startup.ShowWorlds(false);
+        if(startup.Screen==StartupScreen.Worlds)ShowCreateScreen();
     }
-
-    void CloseNewWorld()
-    {
-        newWorldOpen = false;
-        ResetSimulation();
-        if (paused) Raylib.EnableCursor(); else Raylib.DisableCursor();
-    }
-
+    void CloseNewWorld(){newWorldOpen=false;BackFromFrontend();}
     void DrawNewWorldPanel()
     {
-        int width = Math.Min(720, Raylib.GetScreenWidth() - 48), height = 430;
-        int x = (Raylib.GetScreenWidth() - width) / 2, y = (Raylib.GetScreenHeight() - height) / 2;
-        int left = x + 28, available = width - 56;
-        Raylib.DrawRectangle(0, 0, Raylib.GetScreenWidth(), Raylib.GetScreenHeight(), new Color(9,16,24,214));
-        Raylib.DrawRectangle(x, y, width, height, ink);
-        Raylib.DrawRectangle(x, y, 4, height, accent);
-        Raylib.DrawText("CREATE A NEW WORLD", left, y + 25, 28, Color.White);
-        DrawTextFit("Your current world is saved to a separate backup before creating a new one.", left, y + 69, 14, available, muted);
-        Raylib.DrawText("WORLD SEED", left, y + 112, 16, Color.White);
-        var input = new Rectangle(left, y + 139, available - 150, 46);
-        Raylib.DrawRectangleRec(input, tileColor);
-        int key;
-        while ((key = Raylib.GetCharPressed()) != 0)
-        {
-            if (newWorldSeed.Length < 11 && (key >= '0' && key <= '9' || key == '-' && newWorldSeed.Length == 0))
-                newWorldSeed += (char)key;
+        int sw=Raylib.GetScreenWidth(),h=Raylib.GetScreenHeight(),width=Math.Min(700,sw-80),x=(sw-width)/2;
+        MenuHeading("Create New World");
+        bool ctrl=Raylib.IsKeyDown(KeyboardKey.LeftControl)||Raylib.IsKeyDown(KeyboardKey.RightControl);
+        if(ctrl&&(Raylib.IsKeyPressed(KeyboardKey.Tab)||Raylib.IsKeyPressed(KeyboardKey.One)||Raylib.IsKeyPressed(KeyboardKey.Two))){
+            creationTab=Raylib.IsKeyPressed(KeyboardKey.One)?0:Raylib.IsKeyPressed(KeyboardKey.Two)?1:1-creationTab;
+            menuTextFocus=creationTab==0?"worldName":"worldSeed";
         }
-        bool ctrl = Raylib.IsKeyDown(KeyboardKey.LeftControl) || Raylib.IsKeyDown(KeyboardKey.RightControl);
-        if (ctrl && Raylib.IsKeyPressed(KeyboardKey.A)) newWorldSeed = "";
-        if (Raylib.IsKeyPressed(KeyboardKey.Backspace) && newWorldSeed.Length > 0) newWorldSeed = newWorldSeed[..^1];
-        Raylib.DrawText(newWorldSeed + ((int)(Raylib.GetTime()*2)%2==0 ? "|" : ""), left + 12, y + 150, 23, accent);
-        if (Button(new Rectangle(x + width - 162, y + 139, 134, 46), "RANDOM"))
-            newWorldSeed = Random.Shared.Next().ToString(CultureInfo.InvariantCulture);
-        DrawTextFit("Type a number. Ctrl+A clears it. The same seed creates the same terrain.", left, y + 196, 13, available, muted);
-        int half = (available - 12) / 2;
-        if (Button(new Rectangle(left, y + 235, half, 40), "NATURAL: hills and caves", !classicTerrain)) classicTerrain = false;
-        if (Button(new Rectangle(left + half + 12, y + 235, half, 40), "CLASSIC: original terrain", classicTerrain)) classicTerrain = true;
-        DrawTextFit(newWorldStatus.Length == 0 ? "New terrain changes the landscape and replenishes the starting inventory." : newWorldStatus,
-            left, y + 299, 14, available, newWorldStatus.Length == 0 ? muted : new Color(255,151,137,255));
-        if (Button(new Rectangle(left, y + 359, 210, 40), "CREATE NEW WORLD", true))
-        {
-            if (!int.TryParse(newWorldSeed, NumberStyles.Integer, CultureInfo.InvariantCulture, out int seed))
-                newWorldStatus = "Enter a whole number from -2147483648 to 2147483647.";
-            else
-            {
-                try
-                {
-                    StopStreaming(true);
-                    var created = WorldSession.Create(world, feet, yaw, pitch, seed, classicTerrain, savePath);
-                    world = created.World;
-                    world.EnableSlotInventory(palette.Hotbar);SyncHotbar();
-                    starterCircuitPending=true;
-                    feet = world.Spawn(); previousFeet = feet; yaw = MathF.PI; pitch = -.18f;
-                    player.VerticalVelocity = 0; player.Flying = false; paused = false;
-                    CloseNewWorld();
-                    Notice($"New world created. Seed {seed}. Previous world backed up.");
-                    GameLog.Write(logPath, "world-created", $"Seed {seed}; backup {created.BackupPath}");
-                }
-                catch (Exception error)
-                {
-                    newWorldStatus = "Could not create the world. Your current session is still open.";
-                    GameLog.Write(logPath, "world-create-error", error.Message);
-                }
-            }
+        int half=(width-12)/2;
+        if(MenuButton(new(x,96,half,39),"Game",keyboard:false)){creationTab=0;menuTextFocus="worldName";}
+        if(MenuButton(new(x+half+12,96,half,39),"World",keyboard:false)){creationTab=1;menuTextFocus="worldSeed";}
+        Raylib.DrawRectangle(x+creationTab*(half+12),134,half,3,Color.White);
+        Raylib.DrawRectangle(x-18,151,width+36,h-285,new Color(16,20,26,170));
+        if(creationTab==0){
+            Raylib.DrawText("World Name",x,180,18,Color.White);
+            MenuTextField("worldName",new(x,211,width,43),worldNameInput,64);
+            Raylib.DrawText("Game Mode: Sandbox",x,289,21,Color.White);
+            DrawTextFit("Build, mine, craft and explore. Double Space lets you fly.",x,326,16,width,new Color(202,209,215,255));
+            DrawTextFit("Each world keeps its own terrain, inventory and progress.",x,370,16,width,new Color(202,209,215,255));
+        }else{
+            Raylib.DrawText("Seed for World Generation",x,180,18,Color.White);
+            MenuTextField("worldSeed",new(x,211,width-132,43),worldSeedInput,32,"Leave blank for a random seed");
+            if(MenuButton(new(x+width-120,211,120,43),"Random")){worldSeedInput.Text=((int)Random.Shared.NextInt64(int.MinValue,(long)int.MaxValue+1)).ToString();menuTextFocus="worldSeed";}
+            DrawTextFit("Use the same seed and terrain type to start from the same landscape.",x,270,15,width,new Color(202,209,215,255));
+            Raylib.DrawText("World Type",x,316,18,Color.White);
+            if(MenuButton(new(x,350,half,42),"Natural"))classicTerrain=false;
+            if(MenuButton(new(x+half+12,350,half,42),"Classic"))classicTerrain=true;
+            Raylib.DrawRectangleLinesEx(new(x+(classicTerrain?half+12:0),350,half,42),2,new Color(245,232,166,255));
+            DrawTextFit(classicTerrain?"Original starting terrain, with new land beyond it.":"Connected hills, caves, trees and ores.",x,409,16,width,new Color(202,209,215,255));
         }
-        if (Button(new Rectangle(x + width - 148, y + 359, 120, 40), "CANCEL")) CloseNewWorld();
+        bool validSeed=string.IsNullOrWhiteSpace(worldSeedInput.Text)||int.TryParse(worldSeedInput.Text,out _);
+        string status=newWorldStatus.Length>0?newWorldStatus:frontendStatus;
+        if(!validSeed)status="Seed must be a whole number from -2147483648 to 2147483647.";
+        DrawTextFit(status,x,h-149,14,width,new Color(245,181,153,255));
+        bool validName=!string.IsNullOrWhiteSpace(worldNameInput.Text);
+        if(MenuButton(new(x,h-105,half,43),"Create New World",validName&&validSeed))BeginCreatedWorld();
+        if(MenuButton(new(x+half+12,h-105,half,43),"Cancel"))CloseNewWorld();
+        if(Raylib.IsKeyPressed(KeyboardKey.Enter)&&validName&&validSeed)BeginCreatedWorld();
+        MenuCentered("Ctrl+Tab switches tabs",h-39,13,new Color(202,209,215,255));
     }
 }

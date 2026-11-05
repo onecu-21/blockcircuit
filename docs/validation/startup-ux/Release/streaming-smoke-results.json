@@ -1,0 +1,16 @@
+{
+  "Passed": true,
+  "Frames": 150,
+  "FixedTicks": 50,
+  "FallingObserved": true,
+  "WorkerGpuCallsRejected": true,
+  "MaximumLoadJobs": 1,
+  "MaximumChunkUploadsPerFrame": 2,
+  "BackgroundMeshCompletions": 10,
+  "TotalGpuAllocations": 7,
+  "TotalGpuReleases": 7,
+  "LiveVbosAfterDispose": 0,
+  "FrameTimeScope": "Wall time includes the 60 FPS limiter, rendering, streaming, and smoke-only assertions; one-machine observation, not a performance guarantee.",
+  "P95FrameMilliseconds": 16.7405,
+  "P99FrameMilliseconds": 22.0438
+}

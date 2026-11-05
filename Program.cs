@@ -1,5 +1,7 @@
 using BlockCircuit;
 
+if(args.Contains("--startup-smoke-test")){Game.RunStartupSmoke();return;}
+if(args.Contains("--startup-tests")){WorldLibraryTests.Run();StartupFlowTests.Run();return;}
 if(args.Contains("--multiplayer-smoke-test")){new Game(smoke:true).RunMultiplayerSmoke();return;}
 if(args.Contains("--multiplayer-tests")){MultiplayerTests.Run();return;}
 if(args.Contains("--multiplayer-session-benchmark")){MultiplayerSessionBenchmark.Run();return;}

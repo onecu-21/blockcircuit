@@ -1,7 +1,7 @@
 # Major Engine & Gameplay Expansion 로드맵
 
 대상: C# / .NET 10, Raylib-cs / OpenGL, Windows x64 우선과 Linux 호환 유지.
-상태 기준: Phase 05 및 사용자 추가 요청 IP 멀티플레이 검증 완료 시점, 2026-11-05 (Asia/Seoul).
+상태 기준: Phase 05, IP 멀티플레이 및 처음 실행·월드 생성 UX 검증 완료 시점, 2026-11-06 (Asia/Seoul).
 
 ## 공통 진행 규칙
 
@@ -33,6 +33,10 @@ Phase 00부터 번호 순서로 진행한다. 각 단계의 완료 조건과 전
 Phase05 뒤에 사용자 요청으로 IP 직접 접속을 추가했다. [멀티플레이 계약](multiplayer.md), [검증 기록](validation/multiplayer/README.md)을 따른다. F8 호스트/참가/복귀, 최대8명 참가, 상대 아바타·월드 청크·편집·회로·낙하·pickup 공유, 플레이어별 인벤토리/제작·재접속 저장을 구현했다. 현재 Debug/Release 각각651개, OpenGL10모드 통과. 실제 host+2client loopback 세션의 틱/수량/송수신/작업 예산을 측정했다. 커밋·푸시는 하지 않는다.
 
 이 추가 작업은 Phase06 이후의 조명·유체·일반 엔티티 구현을 완료한 것으로 표시하지 않는다. 로비·전용 서버 서비스·NAT 중계·전문 치트 방지는 별도 범위다.
+
+## 사용자 추가 요청 — 처음 실행·월드 생성 UX
+
+공식 Minecraft 안내의 타이틀·Singleplayer·생성 흐름과 Game/World 탭 구성을 조사하고, 타이틀 → 월드 목록/생성 → 로딩 → 플레이 → 저장 후 타이틀 복귀를 구현했다. 이름·시드·Natural/Classic 선택, GUID별 독립 저장, 이름 변경·명시적 백업·확인 후 Trash, 기존 단일 저장 발견, 타이틀 직접 IP 접속을 지원한다. [시작 UX 계약](startup-ux.md), [검증 기록](validation/startup-ux/README.md)을 따른다. Debug/Release 각각707개, 실제 OpenGL11모드와 시작 동선 네이티브37항목이 통과했다. 영문 UI이며 Phase06 이후 게임 시스템을 완료한 것으로 표시하지 않는다.
 
 ## 이어서 할 작업
 

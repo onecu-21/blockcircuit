@@ -1,0 +1,16 @@
+{
+  "Passed": true,
+  "Frames": 31,
+  "ElapsedSeconds": 0.7681764,
+  "RealTcpClients": 2,
+  "SharedBlockReplicated": true,
+  "ClientGestureCraftConfirmed": true,
+  "HostTicksWhileMenuOpen": 2,
+  "SoloWorldRestored": true,
+  "AllGpuResourcesReleased": true,
+  "HostGpuAllocations": 9,
+  "HostGpuReleases": 9,
+  "ClientGpuAllocations": 9,
+  "ClientGpuReleases": 9,
+  "Error": null
+}
