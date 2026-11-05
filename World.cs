@@ -25,7 +25,7 @@ public sealed partial class World
     public GameRegistries Registries { get; }
     public EventHub Events { get; } = new();
     public long TickCount { get; private set; }
-    public void Tick() { TickCount++; Events.Publish(new GameTickEvent(this, TickCount)); }
+    public void Tick() { TickCount++; Events.Publish(new GameTickEvent(this, TickCount)); FallingBlocks.Tick(); }
     // Legacy flattened format is materialized only for saves and compatibility checks.
     // Mutating this snapshot never mutates the live world or bypasses mesh invalidation.
     public byte[] Blocks
@@ -57,12 +57,15 @@ public sealed partial class World
     }
     void BindChunks(ChunkManager manager)
     {
-        if (boundChunks is not null) { boundChunks.OnCellChanged = null; boundChunks.OnChunkRemoved = null; }
+        if (boundChunks is not null) { boundChunks.OnCellChanged = null; boundChunks.OnChunkRemoved = null; boundChunks.CanEdit = null; }
         boundChunks = manager;
+        manager.CanEdit = CanEditStreamingCell;
         manager.OnCellChanged = cell =>
         {
             if (!ReferenceEquals(Chunks, manager)) return;
             blockPayloads.Remove(cell);
+            FallingBlocks?.OnCellChanged(cell);
+            if (IsStreaming) KnownColumns.Add(ColumnCoord.FromChunk(ChunkCoord.FromWorld(cell)));
             if (manager.Get(cell) != Block.Lever) Switches.Remove(cell);
             if (currentEdit is null && !replayingHistory) history.Clear();
         };
@@ -85,6 +88,7 @@ public sealed partial class World
 
     public void Set(Cell p, Block b)
     {
+        if (!CanEditStreamingCell(p)) throw new InvalidOperationException("Wait for this chunk to load before editing it.");
         if (!Registries.Blocks.IsValid(b)) throw new ArgumentOutOfRangeException(nameof(b), "Unknown block ID.");
         var previous = new EditCellState(Get(p), Switches.Contains(p), blockPayloads.GetValueOrDefault(p));
         if (previous.Block == b && (b == Block.Lever || !previous.SwitchOn) && !IsMissing(p)) return;
@@ -114,6 +118,7 @@ public sealed partial class World
         Seed = seed;
         TerrainVersion = legacyTerrain ? 0 : WorldGenerator.Version;
         Circuits = new CircuitSystem(this);
+        FallingBlocks = new FallingBlockSystem(this);
         if (!generate) return;
         if (!legacyTerrain)
         {
@@ -231,7 +236,7 @@ public sealed partial class World
 
     public bool Place(Cell p, Block b)
     {
-        if (!Registries.Blocks.IsValid(b) || !Inside(p) || Get(p) != Block.Air || b is Block.Air or Block.Bedrock || Inventory[(int)b] <= 0) return false;
+        if (!Registries.Blocks.IsValid(b) || !(IsStreaming ? IsCellAvailable(p) && p.Y <= 255 : Inside(p)) || Get(p) != Block.Air || b is Block.Air or Block.Bedrock || Inventory[(int)b] <= 0) return false;
         if (b is Block.Wire or Block.Lever && !Solid(p + new Cell(0, -1, 0))) return false;
         bool success = PerformEdit(() =>
         {
@@ -245,7 +250,7 @@ public sealed partial class World
     private void RemoveUnsupportedAbove(Cell support)
     {
         if (!support.TryOffset(new(0, 1, 0), out var p)) return;
-        while (Inside(p))
+        while (IsStreaming ? IsCellAvailable(p) && p.Y <= 255 : Inside(p))
         {
             var b = Get(p);
             if (b is not (Block.Wire or Block.Lever) || Solid(p + new Cell(0, -1, 0))) break;
@@ -333,7 +338,7 @@ public sealed partial class World
 
     public void SaveLegacy(string path, Vector3 position, float yaw, float pitch)
     {
-        if (Registries.Blocks.Count != BlockCatalog.Count || blockPayloads.Count != 0 || unknownInventory.Count != 0 || OccupiedCells().Any(c => !Inside(c)))
+        if (IsStreaming || FallingBlocks.Active.Count != 0 || Registries.Blocks.Count != BlockCatalog.Count || blockPayloads.Count != 0 || unknownInventory.Count != 0 || OccupiedCells().Any(c => !Inside(c)))
             throw new InvalidOperationException("Legacy export cannot represent extension data.");
         var data = new SaveData(2, Blocks, Switches.ToArray(), Inventory, position, yaw, pitch)
         { Seed = Seed, TerrainVersion = TerrainVersion };
@@ -381,8 +386,10 @@ public sealed partial class World
         TerrainVersion = data.TerrainVersion;
         Inventory = inventory;
         Switches = switches;
+        SetStreamingState(false, 2); FallingBlocks.Restore(null);
         RecomputePower();
         ClearHistory();
+        foreach (var coord in Chunks.Chunks.Keys) FallingBlocks.OnChunkLoaded(coord);
         return (data.Position, data.Yaw, Math.Clamp(data.Pitch, -1.5f, 1.5f));
     }
 }

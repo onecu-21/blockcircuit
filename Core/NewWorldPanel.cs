@@ -65,8 +65,10 @@ sealed partial class Game
             {
                 try
                 {
+                    StopStreaming(true);
                     var created = WorldSession.Create(world, feet, yaw, pitch, seed, classicTerrain, savePath);
                     world = created.World;
+                    starterCircuitPending=true;
                     feet = world.Spawn(); previousFeet = feet; yaw = MathF.PI; pitch = -.18f;
                     player.VerticalVelocity = 0; player.Flying = false; paused = false;
                     CloseNewWorld();

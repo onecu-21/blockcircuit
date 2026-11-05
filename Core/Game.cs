@@ -22,12 +22,14 @@ sealed partial class Game
     readonly Color ink=new(22,29,40,255),accent=new(87,231,182,255);
     public Game(bool smoke=false,bool terrainPreview=false,GameRegistries? registries=null)
     {
-        world=smoke&&!terrainPreview?new World(registries:registries):new World(seed:2026,legacyTerrain:false,registries:registries);
+        world=smoke?(terrainPreview?new World(seed:2026,legacyTerrain:false,registries:registries):new World(registries:registries)):World.CreateStreaming(2026,registries);
+        starterCircuitPending=!smoke&&!File.Exists(savePath);
         palette.Blocks=world.Registries.Blocks;
         settings=smoke?new GameSettings():GameSettings.Load(settingsPath);
         settings.ApplyToPalette(palette);
         feet=world.Spawn();previousFeet=feet;
         if(!smoke&&File.Exists(savePath))TryLoad();
+        if(!smoke)world.EnableStreaming();
         if(!smoke&&settings.LoadWarning is {} warning){Notice(warning);GameLog.Write(logPath,"settings",warning);}
     }
     Vector3 Forward=>Vector3.Normalize(new(MathF.Sin(yaw)*MathF.Cos(pitch),MathF.Sin(pitch),MathF.Cos(yaw)*MathF.Cos(pitch)));
@@ -48,6 +50,7 @@ sealed partial class Game
         {
             while(!Raylib.WindowShouldClose())
             {
+                if(!smoke)EnsureStreaming();
                 verifier?.BeforeFrame(world,frames);
                 if(gameplaySmoke)AdvanceGameplaySmoke(frames);
                 if(controlsSmoke)AdvanceControlsSmoke(frames);
@@ -95,7 +98,7 @@ sealed partial class Game
             }
             if(!smoke)TrySave();
         }
-        finally{renderer.Dispose();Raylib.CloseWindow();}
+        finally{StopStreaming(false);renderer.Dispose();Raylib.CloseWindow();}
         verifier?.Complete(renderer);
         if(gameplaySmoke)FinishGameplaySmoke();
         if(controlsSmoke)FinishControlsSmoke();
@@ -105,7 +108,8 @@ sealed partial class Game
     {
         try
         {
-            world.Save(savePath,feet,yaw,pitch);settings.CapturePalette(palette);settings.Save(settingsPath);
+            if(streamer is not null)streamer.FlushSaves(feet,yaw,pitch);
+            else world.Save(savePath,feet,yaw,pitch);settings.CapturePalette(palette);settings.Save(settingsPath);
             Notice("World and hotbar saved.");GameLog.Write(logPath,"save","World and settings saved.");
         }
         catch(Exception e){Notice("Save failed: "+e.Message);GameLog.Write(logPath,"save-error",e.Message);}
@@ -114,7 +118,9 @@ sealed partial class Game
     {
         try
         {
-            var state=world.Load(savePath);feet=state.Position;yaw=state.Yaw;pitch=state.Pitch;
+            StopStreaming(false);
+            var state=world.Load(savePath);
+            world.EnableStreaming();feet=state.Position;yaw=state.Yaw;pitch=state.Pitch;
             player.VerticalVelocity=0;player.Flying=false;ResetSimulation();
             Notice(world.LastLoadRecovered?"Recovered the previous saved world. Edit history cleared.":"World loaded. Edit history cleared.");
             if(world.LastLoadRecovered)GameLog.Write(logPath,"load-recovery","Recovered the previous valid saved world.");
@@ -140,6 +146,7 @@ sealed partial class Game
         Raylib.BeginDrawing();Raylib.ClearBackground(new Color(171,201,214,255));renderer.DrawSky(camera,width,height);Raylib.BeginMode3D(camera);
         long renderStart=Stopwatch.GetTimestamp();
         renderer.DrawWorld(world,camera,(float)width/height);
+        renderer.DrawFallingBlocks(world,clock.Alpha,camera);
         DrawPlayerAvatar(Vector3.Lerp(previousFeet,feet,clock.Alpha));
         rendererCpuMilliseconds=Stopwatch.GetElapsedTime(renderStart).TotalMilliseconds;
         if(circuitDebug)DrawCircuitLines(eye);
@@ -155,7 +162,9 @@ sealed partial class Game
         Raylib.DrawText("1-9 slots  MMB pick  F5 perspective",width-366,101,13,accent);
         Raylib.DrawText("F1 HUD  F2 screenshot  F3/F4 debug",width-366,123,13,accent);
         Raylib.DrawText("CTRL+S/O save/load  F6 world  F10 settings",width-366,145,12,accent);
-        int cx=width/2,cy=height/2;Raylib.DrawLine(cx-7,cy,cx+7,cy,Color.White);Raylib.DrawLine(cx,cy-7,cx,cy+7,Color.White);
+        int cx=width/2,cy=height/2;
+        if(world.IsStreaming&&!world.IsCellAvailable(new((int)MathF.Floor(feet.X),(int)MathF.Floor(feet.Y),(int)MathF.Floor(feet.Z))))
+            Raylib.DrawText("LOADING NEARBY TERRAIN...",cx-140,cy+65,18,accent);Raylib.DrawLine(cx-7,cy,cx+7,cy,Color.White);Raylib.DrawLine(cx,cy-7,cx,cy+7,Color.White);
         if(target is {} t)
         {
             var b=world.Get(t.Hit);string text=world.Registries.Blocks.GetInfo(b).Name+(b is Block.Wire or Block.Lever or Block.Lamp?$"  |  Power {world.Power.GetValueOrDefault(t.Hit)}":"");

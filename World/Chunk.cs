@@ -37,6 +37,15 @@ public sealed class Chunk
         return true;
     }
 
+    internal static Chunk FromBlocks(ChunkCoord coord, Block[] values)
+    {
+        if (values.Length != 4096) throw new ArgumentException("Chunk requires 4096 cells.", nameof(values));
+        var chunk = new Chunk(coord);
+        int nonAir = values.Count(b => b != Block.Air);
+        if (nonAir > 0) { chunk.blocks = values.Select(b => (int)b).ToArray(); chunk.NonAirCount = nonAir; }
+        return chunk;
+    }
+
     private static int Index(Cell local)
     {
         if ((uint)local.X >= ChunkCoord.Size || (uint)local.Y >= ChunkCoord.Size || (uint)local.Z >= ChunkCoord.Size)

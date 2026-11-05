@@ -9,7 +9,13 @@ public enum SaveCheckpoint { ChunksWritten, BeforeManifestCommit }
 public sealed record ChunkSaveReport(int WrittenChunks, int ReusedChunks, int RemovedChunks, bool MigratedLegacy);
 public sealed record ChunkFileReference(ChunkCoord Coord, string File, string Sha256, string SwitchSignature);
 public sealed record ChunkWorldManifest(int Version, string Generation, int Seed, int TerrainVersion, long TickCount,
-    Vector3 Position, float Yaw, float Pitch, Dictionary<string, int> Counts, ChunkFileReference[] Chunks);
+    Vector3 Position, float Yaw, float Pitch, Dictionary<string, int> Counts, ChunkFileReference[] Chunks)
+{
+    public bool IsStreaming { get; init; }
+    public int GenerationVersion { get; init; } = 2;
+    public ColumnCoord[]? KnownColumns { get; init; } = [];
+    public FallingBlockSaveState? FallingBlocks { get; init; }
+}
 public sealed record ChunkFileData(int Version, ChunkCoord Coord, string[] Palette, int[] Cells, Cell[] Switches, World.CellData[] BlockData);
 
 /// <summary>Immutable chunk files committed by atomically replacing a small world manifest.</summary>
@@ -22,7 +28,7 @@ public static class ChunkSaveStore
     public static void Save(World world, string path, Vector3 position, float yaw, float pitch,
         Action<SaveCheckpoint>? checkpoint = null)
     {
-        World.ValidatePlayer(position, yaw, pitch);
+        World.ValidatePlayer(position, yaw, pitch, world.IsStreaming);
         path = Path.GetFullPath(path);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         using var writerLock = new FileStream(path + ".lock", FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
@@ -74,6 +80,22 @@ public static class ChunkSaveStore
             }
             var old = reuse ? previous!.Chunks.ToDictionary(e => e.Coord) : [];
             int written = 0, reused = 0;
+            if (world.IsStreaming)
+                foreach (var entry in world.StoredChunkReferences.Values)
+                {
+                    if (world.Chunks.Chunks.ContainsKey(entry.Coord) || dirtyCoordinates.Contains(entry.Coord)) continue;
+                    if (world.StoredPath is null) throw new InvalidDataException("Unloaded chunks require their source store.");
+                    string sourceFile = Path.Combine(world.StoredPath + ".chunks", entry.File);
+                    if (!VerifyFile(sourceFile, entry.Sha256)) throw new InvalidDataException("Unloaded saved chunk is invalid.");
+                    if (world.StoredPath == path) { references.Add(entry); reused++; }
+                    else
+                    {
+                        string name = $"{entry.Coord.X}_{entry.Coord.Y}_{entry.Coord.Z}-{Guid.NewGuid():N}.json";
+                        string destination = Path.Combine(directory, name);
+                        AtomicSave.Write(destination, File.ReadAllText(sourceFile)); created.Add(destination);
+                        references.Add(entry with { File = name }); written++;
+                    }
+                }
             foreach (var (coord, chunk) in world.Chunks.Chunks.OrderBy(p => p.Key.X).ThenBy(p => p.Key.Y).ThenBy(p => p.Key.Z))
             {
                 if (!coord.IsValid) throw new InvalidDataException("Chunk coordinate exceeds Cell integer range.");
@@ -100,7 +122,9 @@ public static class ChunkSaveStore
                 written++;
             }
             var manifest = new ChunkWorldManifest(4, Guid.NewGuid().ToString("N"), world.Seed, world.TerrainVersion,
-                world.TickCount, position, yaw, pitch, counts, references.ToArray());
+                world.TickCount, position, yaw, pitch, counts, references.ToArray())
+            { IsStreaming = world.IsStreaming, GenerationVersion = world.GenerationVersion,
+                KnownColumns = world.KnownColumns.ToArray(), FallingBlocks = world.FallingBlocks.Capture() };
             checkpoint?.Invoke(SaveCheckpoint.ChunksWritten);
             string text = JsonSerializer.Serialize(manifest, Options);
             if (System.Text.Encoding.UTF8.GetByteCount(text) > 64L * 1024 * 1024) throw new InvalidDataException("World manifest exceeds 64 MiB.");
@@ -122,7 +146,9 @@ public static class ChunkSaveStore
             world.StoredPath = path; world.StoredGeneration = manifest.Generation;
             world.LastSaveReport = new(written, reused, removed, migrated);
             world.LastLoadRecovered = false;
-            Cleanup(directory, manifest, path + ".bak");
+            world.StoredChunkReferences.Clear();
+            foreach (var entry in manifest.Chunks) world.StoredChunkReferences.Add(entry.Coord, entry);
+            Cleanup(directory, manifest, path + ".bak", world.RetainedChunkFiles);
         }
         finally
         {
@@ -132,11 +158,11 @@ public static class ChunkSaveStore
         }
     }
 
-    static string SwitchSignature(World world, ChunkCoord coord) => string.Join(";", world.Switches
+    internal static string SwitchSignature(World world, ChunkCoord coord) => string.Join(";", world.Switches
         .Where(cell => ChunkCoord.FromWorld(cell) == coord).OrderBy(c => c.X).ThenBy(c => c.Y).ThenBy(c => c.Z)
         .Select(cell => $"{cell.X},{cell.Y},{cell.Z}"));
 
-    static ChunkFileData CaptureChunk(World world, ChunkCoord coord)
+    internal static ChunkFileData CaptureChunk(World world, ChunkCoord coord)
     {
         var palette = new List<string>();
         var index = new Dictionary<ContentId, int>();
@@ -160,11 +186,13 @@ public static class ChunkSaveStore
     {
         var manifest = JsonSerializer.Deserialize<ChunkWorldManifest>(root.GetRawText(), Options)
             ?? throw new InvalidDataException("Empty chunk manifest.");
-        World.ValidatePlayer(manifest.Position, manifest.Yaw, manifest.Pitch);
+        World.ValidatePlayer(manifest.Position, manifest.Yaw, manifest.Pitch, manifest.IsStreaming);
         if (manifest.Version != 4 || manifest.Generation is null || !Guid.TryParseExact(manifest.Generation, "N", out _) ||
-            manifest.TerrainVersion is not (0 or 1) || manifest.TickCount < 0 || manifest.Counts is null ||
+            manifest.TerrainVersion is not (0 or 1 or 2) || manifest.TickCount < 0 || manifest.Counts is null ||
             manifest.Chunks is null || manifest.Chunks.Length > 1000000)
             throw new InvalidDataException("Invalid chunk manifest.");
+        if (manifest.GenerationVersion != 2 || manifest.KnownColumns is null || manifest.KnownColumns.Distinct().Count() != manifest.KnownColumns.Length || manifest.KnownColumns.Any(c => !new ChunkCoord(c.X, 0, c.Z).IsValid)) throw new InvalidDataException("Invalid streaming metadata.");
+        FallingBlockSystem.ValidateState(manifest.FallingBlocks);
         var coordinates = new HashSet<ChunkCoord>();
         foreach (var entry in manifest.Chunks)
         {
@@ -183,6 +211,28 @@ public static class ChunkSaveStore
     {
         var manifest = ParseManifest(root);
         ValidateDataDirectory(path + ".chunks");
+        if (manifest.IsStreaming || world.IsStreaming)
+        {
+            foreach (var entry in manifest.Chunks)
+                if (!VerifyFile(Path.Combine(path + ".chunks", entry.File), entry.Sha256)) throw new InvalidDataException("Invalid streamed chunk checksum.");
+            var loadedInventory = new int[world.Registries.Blocks.Count];
+            var missingCounts = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var pair in manifest.Counts)
+                if (world.Registries.Blocks.TryGetBlock(new(pair.Key), out var block)) loadedInventory[(int)block] = pair.Value;
+                else missingCounts.Add(pair.Key, pair.Value);
+            world.InstallState(new ChunkManager(world.Registries.Blocks), [], loadedInventory, missingCounts, [], manifest.Seed, manifest.TerrainVersion, manifest.TickCount);
+            var knownColumns = manifest.KnownColumns!.ToHashSet();
+            if (!manifest.IsStreaming)
+            {
+                for (int z = 0; z <= (World.Size - 1) / 16; z++) for (int x = 0; x <= (World.Size - 1) / 16; x++) knownColumns.Add(new(x, z));
+                knownColumns.UnionWith(manifest.Chunks.Select(e => ColumnCoord.FromChunk(e.Coord)));
+            }
+            world.SetStreamingState(true, manifest.GenerationVersion, knownColumns);
+            foreach (var entry in manifest.Chunks) world.StoredChunkReferences.Add(entry.Coord, entry);
+            world.FallingBlocks.Restore(manifest.FallingBlocks);
+            world.StoredPath = path; world.StoredGeneration = manifest.Generation; world.LastLoadRecovered = recovered;
+            return (manifest.Position, manifest.Yaw, Math.Clamp(manifest.Pitch, -1.5f, 1.5f));
+        }
         var manager = new ChunkManager(world.Registries.Blocks);
         var payloads = new Dictionary<Cell, World.BlockPayload>();
         var switches = new HashSet<Cell>();
@@ -236,7 +286,21 @@ public static class ChunkSaveStore
         world.Chunks.MarkAllSaved();
         world.StoredPath = path; world.StoredGeneration = manifest.Generation;
         world.LastLoadRecovered = recovered;
+        foreach (var entry in manifest.Chunks) world.StoredChunkReferences[entry.Coord] = entry;
+        if (manifest.FallingBlocks is not null) world.FallingBlocks.Restore(manifest.FallingBlocks);
         return (manifest.Position, manifest.Yaw, Math.Clamp(manifest.Pitch, -1.5f, 1.5f));
+    }
+
+    internal static StreamingChunkData ReadStreamingChunk(string path, ChunkFileReference entry, GameRegistries registries, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ValidateDataDirectory(path + ".chunks");
+        string file = Path.Combine(path + ".chunks", entry.File);
+        if (!VerifyFile(file, entry.Sha256)) throw new InvalidDataException("Invalid streamed chunk checksum.");
+        var data = JsonSerializer.Deserialize<ChunkFileData>(File.ReadAllBytes(file), Options)
+            ?? throw new InvalidDataException("Empty streamed chunk.");
+        cancellationToken.ThrowIfCancellationRequested();
+        return StreamingChunkData.Decode(registries, data, entry);
     }
 
     static bool VerifyFile(string file, string expectedHash)
@@ -256,11 +320,12 @@ public static class ChunkSaveStore
             throw new InvalidDataException("Linked chunk directories are not supported.");
     }
 
-    static void Cleanup(string directory, ChunkWorldManifest current, string backup)
+    static void Cleanup(string directory, ChunkWorldManifest current, string backup, IEnumerable<string>? retained = null)
     {
         try
         {
             var keep = current.Chunks.Select(e => e.File).ToHashSet(StringComparer.Ordinal);
+            if (retained is not null) keep.UnionWith(retained);
             if (File.Exists(backup))
             {
                 using var doc = JsonDocument.Parse(File.ReadAllText(backup));

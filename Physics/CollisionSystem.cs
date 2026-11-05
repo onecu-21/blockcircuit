@@ -11,6 +11,8 @@ public static class CollisionSystem
     public const float BodyHeight = 1.75f;
     public const float BoundaryMargin = .3f;
     public const float MaximumFeetY = World.Height + 8;
+    public const float StreamingMaximumFeetY = 255;
+    public const float MaximumStreamingStep = 256;
     const double TouchTolerance = .00001;
 
     public static bool Collides(World world, Vector3 feet, float bodyHeight = BodyHeight)
@@ -18,9 +20,7 @@ public static class CollisionSystem
         ArgumentNullException.ThrowIfNull(world);
         RequireFinite(feet, nameof(feet));
         RequireBodyHeight(bodyHeight);
-        if (feet.X < BoundaryMargin || feet.Z < BoundaryMargin ||
-            feet.X > World.Size - BoundaryMargin || feet.Z > World.Size - BoundaryMargin || feet.Y > MaximumFeetY)
-            return true;
+        if (OutsideBounds(world, feet)) return true;
         return AnySolid(world,
             feet.X - (double)HalfWidth, feet.Y, feet.Z - (double)HalfWidth,
             feet.X + (double)HalfWidth, feet.Y + (double)bodyHeight, feet.Z + (double)HalfWidth);
@@ -52,6 +52,7 @@ public static class CollisionSystem
         RequireFinite(feet, nameof(feet));
         RequireFinite(delta, nameof(delta));
         RequireBodyHeight(bodyHeight);
+        if (world.IsStreaming) ClampStreamingPosition(ref feet);
         bool hitX = MoveAxis(world, ref feet, delta.X, 0, bodyHeight);
         bool hitZ = MoveAxis(world, ref feet, delta.Z, 2, bodyHeight);
         bool hitY = MoveAxis(world, ref feet, delta.Y, 1, bodyHeight);
@@ -63,8 +64,9 @@ public static class CollisionSystem
         if (movement == 0) return false;
         double origin = Axis(feet, axis);
         double requested = origin + movement;
-        double target = axis == 1 ? Math.Min(requested, MaximumFeetY)
-            : Math.Clamp(requested, BoundaryMargin, World.Size - BoundaryMargin);
+        double limited = world.IsStreaming ? Math.Clamp((double)movement, -MaximumStreamingStep, MaximumStreamingStep) : movement;
+        double target = axis == 1 ? Math.Min(origin + limited, MaximumFeetHeight(world))
+            : Math.Clamp(origin + limited, MinimumHorizontal(world), MaximumHorizontal(world));
         double lowerOffset = axis == 1 ? 0 : -HalfWidth;
         double upperOffset = axis == 1 ? bodyHeight : HalfWidth;
         double startMin = origin + lowerOffset, startMax = origin + upperOffset;
@@ -76,13 +78,13 @@ public static class CollisionSystem
         if (axis == 0) { minX = sweepMin; maxX = sweepMax; }
         if (axis == 1) { minY = sweepMin; maxY = sweepMax; }
         if (axis == 2) { minZ = sweepMin; maxZ = sweepMax; }
-        if (CellRange(minX, maxX, World.Size, out int fromX, out int toX) &&
-            CellRange(minY, maxY, World.Height, out int fromY, out int toY) &&
-            CellRange(minZ, maxZ, World.Size, out int fromZ, out int toZ))
+        if (CellRange(world, 0, minX, maxX, out int fromX, out int toX) &&
+            CellRange(world, 1, minY, maxY, out int fromY, out int toY) &&
+            CellRange(world, 2, minZ, maxZ, out int fromZ, out int toZ))
         {
             for (int y = fromY; y <= toY; y++) for (int z = fromZ; z <= toZ; z++) for (int x = fromX; x <= toX; x++)
             {
-                if (!world.Solid(new(x, y, z))) continue;
+                if (!Obstructs(world, new(x, y, z))) continue;
                 int nearFace = axis == 0 ? x : axis == 1 ? y : z;
                 if (movement > 0 && nearFace >= startMax - TouchTolerance)
                     target = Math.Min(target, nearFace - upperOffset);
@@ -101,21 +103,41 @@ public static class CollisionSystem
 
     static bool AnySolid(World world, double minX, double minY, double minZ, double maxX, double maxY, double maxZ)
     {
-        if (!CellRange(minX, maxX, World.Size, out int fromX, out int toX) ||
-            !CellRange(minY, maxY, World.Height, out int fromY, out int toY) ||
-            !CellRange(minZ, maxZ, World.Size, out int fromZ, out int toZ)) return false;
+        if (!CellRange(world, 0, minX, maxX, out int fromX, out int toX) ||
+            !CellRange(world, 1, minY, maxY, out int fromY, out int toY) ||
+            !CellRange(world, 2, minZ, maxZ, out int fromZ, out int toZ)) return false;
         for (int y = fromY; y <= toY; y++) for (int z = fromZ; z <= toZ; z++) for (int x = fromX; x <= toX; x++)
-            if (world.Solid(new(x, y, z))) return true;
+            if (Obstructs(world, new(x, y, z))) return true;
         return false;
     }
 
-    static bool CellRange(double min, double max, int limit, out int from, out int to)
+    internal static float MinimumHorizontal(World world) => world.IsStreaming ? -World.MaximumPlayerCoordinate + BoundaryMargin : BoundaryMargin;
+    internal static float MaximumHorizontal(World world) => world.IsStreaming ? World.MaximumPlayerCoordinate - BoundaryMargin : World.Size - BoundaryMargin;
+    internal static float MaximumFeetHeight(World world) => world.IsStreaming ? StreamingMaximumFeetY : MaximumFeetY;
+
+    internal static bool Obstructs(World world, Cell cell) => world.IsStreaming
+        ? cell.Y < 0 || !world.IsCellAvailable(cell) || world.Solid(cell)
+        : world.Solid(cell);
+
+    static bool OutsideBounds(World world, Vector3 feet) => feet.X < MinimumHorizontal(world) || feet.X > MaximumHorizontal(world) ||
+        feet.Z < MinimumHorizontal(world) || feet.Z > MaximumHorizontal(world) || feet.Y > MaximumFeetHeight(world) || world.IsStreaming && feet.Y < 0;
+
+    static void ClampStreamingPosition(ref Vector3 feet)
     {
+        feet.X = Math.Clamp(feet.X, -World.MaximumPlayerCoordinate + BoundaryMargin, World.MaximumPlayerCoordinate - BoundaryMargin);
+        feet.Z = Math.Clamp(feet.Z, -World.MaximumPlayerCoordinate + BoundaryMargin, World.MaximumPlayerCoordinate - BoundaryMargin);
+        feet.Y = Math.Clamp(feet.Y, -1, StreamingMaximumFeetY);
+    }
+
+    static bool CellRange(World world, int axis, double min, double max, out int from, out int to)
+    {
+        double lower = world.IsStreaming ? axis == 1 ? -1 : -World.MaximumPlayerCoordinate - 1 : 0;
+        double upper = world.IsStreaming ? axis == 1 ? StreamingMaximumFeetY + 3 : World.MaximumPlayerCoordinate + 1 : axis == 1 ? World.Height : World.Size;
         from = 0; to = -1;
-        if (max <= 0 || min >= limit) return false;
-        // Clamp doubles before integer conversion, including enormous finite test inputs.
-        from = (int)Math.Max(0, Math.Floor(min + TouchTolerance));
-        to = (int)Math.Min(limit - 1, Math.Floor(max - TouchTolerance));
+        if (max <= lower || min >= upper) return false;
+        // Bound before converting to integers, including enormous finite tool inputs.
+        from = (int)Math.Max(lower, Math.Floor(min + TouchTolerance));
+        to = (int)Math.Min(upper - 1, Math.Floor(max - TouchTolerance));
         return from <= to;
     }
 

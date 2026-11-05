@@ -1,12 +1,18 @@
 using BlockCircuit;
 
+if(args.Contains("--streaming-soak-test")){StreamingSoak.Run();return;}
+if(args.Contains("--streaming-smoke-test")){StreamingSmoke.Run();return;}
 if(args.Contains("--self-test")){SelfTests.Run();return;}
+if(args.Contains("--streaming-tests")){StreamingTerrainTests.Run();StreamingPhysicsTests.Run();ChunkMeshSchedulerTests.Run();WorldStreamingTests.Run();StreamingSaveIntegrityTests.Run();FallingBlockTests.Run();FallingPersistenceTests.Run();return;}
+if(args.Contains("--falling-tests")){FallingBlockTests.Run();FallingPersistenceTests.Run();return;}
 if(args.Contains("--chunk-tests")){ChunkLifecycleTests.Run();ChunkPersistenceTests.Run();return;}
 if(args.Contains("--registry-tests")){RegistryTests.Run();RegistrySettingsTests.Run();return;}
 if(args.Contains("--engine-tests")){EngineTests.Run();ChunkLifecycleTests.Run();ChunkPersistenceTests.Run();RegistryTests.Run();RegistrySettingsTests.Run();return;}
 if(args.Contains("--gameplay-tests")){GameplayTests.Run();return;}
 if(args.Contains("--terrain-tests")){TerrainTests.Run();WorldSessionTests.Run();return;}
 if(args.Contains("--controls-tests")){ControlsTests.Run();SneakTests.Run();CameraTests.Run();return;}
+if(args.Contains("--falling-benchmark")){FallingBenchmark.Run();return;}
+if(args.Contains("--streaming-benchmark")){StreamingBenchmark.Run();return;}
 if(args.Contains("--storage-benchmark")){StorageBenchmark.Run();return;}
 if(args.Contains("--physics-benchmark")){PhysicsBenchmark.Run();return;}
 if(args.Contains("--benchmark")){EngineBenchmark.Run();return;}

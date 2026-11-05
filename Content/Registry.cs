@@ -76,7 +76,7 @@ public sealed class GameRegistries
         foreach (var info in BlockCatalog.Builtins)
         {
             var id = LegacyBlockIds.GetPersistentId((int)info.Id);
-            result.Blocks.Register(id, info with { TextureBlock = info.Id });
+            result.Blocks.Register(id, info with { TextureBlock = info.Id, AffectedByGravity = info.Id is Block.Sand or Block.RedSand or Block.Gravel });
             if (info.Id is not (Block.Air or Block.Bedrock)) result.Items.Register(id, new(info.Name));
         }
         configure?.Invoke(result);

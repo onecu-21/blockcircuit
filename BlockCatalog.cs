@@ -189,7 +189,7 @@ public enum BlockCategory { Natural, Wood, Stone, Ores, Glass, Wool, Concrete, T
 public enum BlockPattern { Plain, Grass, Soil, Stone, Ore, Log, Planks, Leaves, Bricks, Tiles, Glass, Wool, Concrete, Terracotta, Metal, Lamp, Wire, Lever }
 
 public sealed record BlockInfo(Block Id, string Name, BlockCategory Category, uint Tint,
-    BlockPattern Pattern, float Hardness = .4f, bool Transparent = false, Block TextureBlock = Block.Stone);
+    BlockPattern Pattern, float Hardness = .4f, bool Transparent = false, Block TextureBlock = Block.Stone, bool AffectedByGravity = false);
 
 public static class BlockCatalog
 {
@@ -377,8 +377,9 @@ public static class BlockCatalog
         new(Block.BlackGlass, "Black Glass", BlockCategory.Glass, 0x282D35, BlockPattern.Glass, 0.2f, true),
     ];
 
-    public static IReadOnlyList<BlockInfo> Placeable { get; } = Array.AsReadOnly(
-        Entries.Where(info => info.Id is not (Block.Air or Block.Bedrock)).ToArray());
+    static readonly Lazy<IReadOnlyList<BlockInfo>> RegisteredPlaceable = new(() =>
+        Array.AsReadOnly(GameRegistries.Default.Blocks.Placeable.ToArray()));
+    public static IReadOnlyList<BlockInfo> Placeable => RegisteredPlaceable.Value;
 
     // Count includes Air and Bedrock and is the required inventory array length.
     internal static IReadOnlyList<BlockInfo> Builtins => Entries;

@@ -32,15 +32,30 @@ public sealed partial class World
         public int Seed { get; init; } = 731;
         public int TerrainVersion { get; init; }
         public long TickCount { get; init; }
+        public bool IsStreaming { get; init; }
+        public int GenerationVersion { get; init; } = 2;
+        public ColumnCoord[]? KnownColumns { get; init; } = [];
+        public FallingBlockSaveState? FallingBlocks { get; init; }
         public CellData[]? BlockData { get; init; } = [];
         public ExtraCell[]? ExtraCells { get; init; } = [];
     }
 
-    public void Save(string path, Vector3 position, float yaw, float pitch) => ChunkSaveStore.Save(this, path, position, yaw, pitch);
+    public void Save(string path, Vector3 position, float yaw, float pitch)
+    {
+        if (ActiveStreamer is not null)
+        {
+            var owner = ActiveStreamer; owner.FlushSaves(position, yaw, pitch);
+            if (Path.GetFullPath(path) == owner.StoragePath) return;
+        }
+        ChunkSaveStore.Save(this, path, position, yaw, pitch);
+    }
 
     public void ExportSnapshot(string path, Vector3 position, float yaw, float pitch)
     {
-        ValidatePlayer(position, yaw, pitch);
+        if (ActiveStreamer?.SaveInProgress == true) ActiveStreamer.FlushSaves(position, yaw, pitch);
+        ValidatePlayer(position, yaw, pitch, IsStreaming);
+        if (IsStreaming && StoredChunkReferences.Keys.Any(c => !Chunks.Chunks.ContainsKey(c) && !Chunks.DirtyCoordinates.Contains(c)))
+        { CreateCompleteExportWorld().ExportSnapshot(path, position, yaw, pitch); return; }
         var palette = new List<string>();
         var lookup = new Dictionary<ContentId, int>();
         var cells = new int[Size * Height * Size];
@@ -58,6 +73,7 @@ public sealed partial class World
         var data = new SnapshotData(3, palette.ToArray(), cells, Switches.Where(Inside).ToArray(), counts, position, yaw, pitch)
         {
             Seed = Seed, TerrainVersion = TerrainVersion, TickCount = TickCount,
+            IsStreaming = IsStreaming, GenerationVersion = GenerationVersion, KnownColumns = KnownColumns.ToArray(), FallingBlocks = FallingBlocks.Capture(),
             BlockData = blockPayloads.Where(p => Inside(p.Key) && Get(p.Key) != Block.Air && p.Value.Data.HasValue).Select(p => new CellData(p.Key, p.Value.Data!.Value)).ToArray(),
             ExtraCells = OccupiedCells().Where(cell => !Inside(cell)).Select(cell => new ExtraCell(cell, GetPersistentId(cell).ToString(), GetBlockData(cell), Switches.Contains(cell))).ToArray()
         };
@@ -69,6 +85,7 @@ public sealed partial class World
 
     public (Vector3 Position, float Yaw, float Pitch) Load(string path)
     {
+        ActiveStreamer?.Dispose();
         path = Path.GetFullPath(path);
         try { return LoadFile(path, path, false); }
         catch (Exception original) when (IsSaveError(original))
@@ -104,8 +121,10 @@ public sealed partial class World
 
     (Vector3 Position, float Yaw, float Pitch) LoadSnapshot(SnapshotData data)
     {
-        ValidatePlayer(data.Position, data.Yaw, data.Pitch);
-        if (data.TerrainVersion is not (0 or 1) || data.TickCount < 0 ||
+        ValidatePlayer(data.Position, data.Yaw, data.Pitch, data.IsStreaming);
+        FallingBlockSystem.ValidateState(data.FallingBlocks);
+        if (data.KnownColumns is null || data.GenerationVersion != 2 || data.KnownColumns.Distinct().Count() != data.KnownColumns.Length || data.KnownColumns.Any(c => !new ChunkCoord(c.X, 0, c.Z).IsValid)) throw new InvalidDataException("Invalid streaming metadata.");
+        if (data.TerrainVersion is not (0 or 1 or 2) || data.TickCount < 0 ||
             data.Palette is null || data.Palette.Length is < 1 or > 44800 ||
             data.Cells is null || data.Cells.Length != Size * Height * Size ||
             data.Switches is null || data.Counts is null || data.BlockData is null || data.ExtraCells is null)
@@ -159,6 +178,8 @@ public sealed partial class World
             else unknown.Add(name, count);
         }
         InstallState(chunks, payloads, inventory, unknown, allSwitches, data.Seed, data.TerrainVersion, data.TickCount);
+        SetStreamingState(data.IsStreaming, data.GenerationVersion, data.KnownColumns);
+        if (data.FallingBlocks is not null) FallingBlocks.Restore(data.FallingBlocks);
         return (data.Position, data.Yaw, Math.Clamp(data.Pitch, -1.5f, 1.5f));
     }
     internal void InstallState(ChunkManager chunks, Dictionary<Cell, BlockPayload> payloads, int[] inventory,
@@ -170,7 +191,9 @@ public sealed partial class World
         unknownInventory.Clear(); foreach (var pair in unknown) unknownInventory.Add(pair.Key, pair.Value);
         Inventory = inventory; Switches = switches.ToHashSet();
         Seed = seed; TerrainVersion = terrainVersion; TickCount = ticks;
+        SetStreamingState(false, 2); FallingBlocks.Restore(null);
         RecomputePower(); ClearHistory();
+        foreach (var coord in Chunks.Chunks.Keys) FallingBlocks.OnChunkLoaded(coord);
     }
     internal IEnumerable<Cell> OccupiedCells()
     {
@@ -181,11 +204,12 @@ public sealed partial class World
                 if (chunk.Get(new(x, y, z)) != Block.Air) yield return origin + new Cell(x, y, z);
         }
     }
-    internal static void ValidatePlayer(Vector3 position, float yaw, float pitch)
+    internal static void ValidatePlayer(Vector3 position, float yaw, float pitch, bool streaming = false)
     {
         if (!float.IsFinite(position.X) || !float.IsFinite(position.Y) || !float.IsFinite(position.Z) ||
-            !float.IsFinite(yaw) || !float.IsFinite(pitch) || position.X < .3f || position.X > Size - .3f ||
-            position.Z < .3f || position.Z > Size - .3f || position.Y < 0 || position.Y > Height + 10)
+            !float.IsFinite(yaw) || !float.IsFinite(pitch) ||
+            (streaming ? Math.Abs(position.X) > MaximumPlayerCoordinate || Math.Abs(position.Z) > MaximumPlayerCoordinate || position.Y < 0 || position.Y > 255 :
+                position.X < .3f || position.X > Size - .3f || position.Z < .3f || position.Z > Size - .3f || position.Y < 0 || position.Y > Height + 10))
             throw new InvalidDataException("Invalid saved player state.");
     }
 }

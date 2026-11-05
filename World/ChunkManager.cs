@@ -10,6 +10,7 @@ public sealed class ChunkManager
     readonly HashSet<ChunkCoord> dirty = [];
     long revision;
     long contentEpoch;
+    internal Func<Cell, bool>? CanEdit { get; set; }
     internal Action<Cell>? OnCellChanged { get; set; }
     internal Action<ChunkCoord>? OnChunkRemoved { get; set; }
     readonly BlockRegistry blocks;
@@ -27,6 +28,7 @@ public sealed class ChunkManager
 
     public bool Set(Cell world, Block block)
     {
+        if (CanEdit is not null && !CanEdit(world)) throw new InvalidOperationException("Wait for this chunk to load before editing it.");
         if (!blocks.IsValid(block)) throw new ArgumentOutOfRangeException(nameof(block), "Unknown block ID.");
         var coord = ChunkCoord.FromWorld(world);
         if (!chunks.TryGetValue(coord, out var chunk))
@@ -62,6 +64,28 @@ public sealed class ChunkManager
         Touch(new(coord.X, coord.Y + 1, coord.Z));
         Touch(new(coord.X, coord.Y, coord.Z - 1));
         Touch(new(coord.X, coord.Y, coord.Z + 1));
+        return true;
+    }
+
+    internal void Install(ChunkCoord coord, Block[] values, bool dirtyContent)
+    {
+        RequireValid(coord);
+        if (chunks.ContainsKey(coord)) throw new InvalidOperationException("Chunk already resident.");
+        if (values.Any(b => !blocks.IsValid(b))) throw new InvalidDataException("Unknown chunk runtime ID.");
+        var chunk = Chunk.FromBlocks(coord, values);
+        if (chunk.NonAirCount == 0) return;
+        chunks.Add(coord, chunk);
+        if (dirtyContent) TrackContent(coord);
+        Touch(coord);
+        foreach (var offset in World.Neighbors) Touch(new(coord.X + offset.X, coord.Y + offset.Y, coord.Z + offset.Z));
+    }
+    internal void RecordDeletion(ChunkCoord coord) { RequireValid(coord); TrackContent(coord); }
+    internal bool Evict(ChunkCoord coord)
+    {
+        if (!chunks.TryGetValue(coord, out var chunk)) return false;
+        if (chunk.IsDirty || dirty.Contains(coord)) throw new InvalidOperationException("Cannot evict unsaved content.");
+        chunks.Remove(coord); contentRevisions.Remove(coord); chunk.Lifecycle.Retire(); OnChunkRemoved?.Invoke(coord);
+        foreach (var offset in World.Neighbors) Touch(new(coord.X + offset.X, coord.Y + offset.Y, coord.Z + offset.Z));
         return true;
     }
 

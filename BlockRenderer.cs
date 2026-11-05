@@ -15,6 +15,11 @@ public sealed class BlockRenderer : IDisposable
     public static Vector3 SunDirection { get; } = Vector3.Normalize(new(-.45f, .82f, .30f));
     Material material;
     readonly Dictionary<ChunkCoord, CachedChunk> cache = [];
+    readonly ChunkMeshScheduler backgroundMeshes = new(2);
+    readonly int renderThread = Environment.CurrentManagedThreadId;
+    public const int MaximumChunkUploadsPerFrame = 2;
+    public int PendingMeshJobs => backgroundMeshes.PendingCount;
+    public long BackgroundMeshCompletions => backgroundMeshes.TotalCompleted;
     readonly List<ChunkCoord> removed = [];
     readonly List<CachedChunk> visible = [];
     readonly List<(CachedChunk Chunk, float Distance)> transparent = [];
@@ -177,6 +182,7 @@ public sealed class BlockRenderer : IDisposable
     public void DrawWorld(World world, Camera3D camera, float aspect)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
+        RequireRenderThread();
         UpdateAtmosphere(camera);
         if (!ReferenceEquals(source, world.Chunks))
         {
@@ -195,6 +201,24 @@ public sealed class BlockRenderer : IDisposable
 
         MeshBuildsThisFrame = 0;
         LastBuildMilliseconds = 0;
+        if (world.IsStreaming)
+        {
+            backgroundMeshes.CancelObsolete(world);
+            for (int completed = 0; completed < MaximumChunkUploadsPerFrame && backgroundMeshes.TryTakeCompleted(world, out var result); completed++)
+            {
+                if (!cache.TryGetValue(result.Coord, out var ready)) cache.Add(result.Coord, ready = new CachedChunk(result.SourceChunk));
+                long started = Stopwatch.GetTimestamp();
+                try
+                {
+                    Update(ready.Opaque, result.Data.Opaque); Update(ready.Transparent, result.Data.Transparent);
+                    ready.Circuits = result.Data.Circuits; ready.Source = result.SourceChunk; ready.Revision = result.Revision;
+                    result.SourceChunk.Lifecycle.CompleteMeshing(result.OperationToken);
+                    MeshBuildsThisFrame++; TotalMeshBuilds++;
+                    LastBuildMilliseconds += Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+                }
+                catch (Exception error) { result.SourceChunk.Lifecycle.Fail(result.OperationToken, error); throw; }
+            }
+        }
         visible.Clear();
         transparent.Clear();
         VisibleChunkCount = CulledChunkCount = VertexCount = GpuBufferCount = 0;
@@ -202,7 +226,9 @@ public sealed class BlockRenderer : IDisposable
             camera.FovY * MathF.PI / 180f, aspect, .01f, 1000f);
         float drawDistanceSquared = drawDistance * drawDistance;
 
-        foreach (var (coord, chunk) in source.Chunks)
+        IEnumerable<KeyValuePair<ChunkCoord, Chunk>> renderChunks = world.IsStreaming
+            ? source.Chunks.OrderBy(p => Vector3.DistanceSquared(camera.Position, p.Key.Origin.Center)) : source.Chunks;
+        foreach (var (coord, chunk) in renderChunks)
         {
             if (!cache.TryGetValue(coord, out var cached))
             {
@@ -211,6 +237,9 @@ public sealed class BlockRenderer : IDisposable
             }
             if (!ReferenceEquals(cached.Source, chunk) || cached.Revision != chunk.Revision)
             {
+                if (world.IsStreaming) backgroundMeshes.Request(world, coord, chunk);
+                else
+                {
                 long start = Stopwatch.GetTimestamp();
                 long operation = chunk.Lifecycle.BeginMeshing();
                 try
@@ -227,6 +256,7 @@ public sealed class BlockRenderer : IDisposable
                 LastBuildMilliseconds += Stopwatch.GetElapsedTime(start).TotalMilliseconds;
                 MeshBuildsThisFrame++;
                 TotalMeshBuilds++;
+                }
             }
             GpuBufferCount += cached.Opaque.BufferCount + cached.Transparent.BufferCount;
             var min = new Vector3(coord.X * 16, coord.Y * 16, coord.Z * 16);
@@ -264,6 +294,49 @@ public sealed class BlockRenderer : IDisposable
             }
             finally { Rlgl.EnableDepthMask(); }
         }
+    }
+
+    void RequireRenderThread()
+    {
+        if (Environment.CurrentManagedThreadId != renderThread) throw new InvalidOperationException("GPU resources belong to the render thread.");
+    }
+    static readonly Vector3[][] FallingFaces =
+    [
+        [new(1,0,1),new(1,0,0),new(1,1,0),new(1,1,1)],
+        [new(0,0,0),new(0,0,1),new(0,1,1),new(0,1,0)],
+        [new(0,1,1),new(1,1,1),new(1,1,0),new(0,1,0)],
+        [new(0,0,0),new(1,0,0),new(1,0,1),new(0,0,1)],
+        [new(0,0,1),new(1,0,1),new(1,1,1),new(0,1,1)],
+        [new(1,0,0),new(0,0,0),new(0,1,0),new(1,1,0)]
+    ];
+    public void DrawFallingBlocks(World world, float alpha, Camera3D camera)
+    {
+        RequireRenderThread(); ObjectDisposedException.ThrowIf(disposed, this);
+        if (world.FallingBlocks.Active.Count == 0) return;
+        Rlgl.SetTexture(atlas.Id);
+        foreach (var falling in world.FallingBlocks.Active)
+        {
+            var position = Vector3.Lerp(falling.PreviousPosition, falling.Position, Math.Clamp(alpha, 0, 1));
+            if (Vector3.DistanceSquared(position, camera.Position) > drawDistance * drawDistance) continue;
+            Block texture = world.Registries.Blocks.GetInfo(falling.Block).TextureBlock;
+            var origin = position - new Vector3(.5f, 0, .5f);
+            Rlgl.Begin((int)DrawMode.Quads);
+            for (int face = 0; face < 6; face++)
+            {
+                int tile = (int)texture * 4 + (face == 2 ? 1 : face == 3 ? 2 : 0);
+                float u0 = (tile % Columns * Tile + .5f) / AtlasSize, v0 = (tile / Columns * Tile + .5f) / AtlasSize;
+                float u1 = (tile % Columns * Tile + Tile - .5f) / AtlasSize, v1 = (tile / Columns * Tile + Tile - .5f) / AtlasSize;
+                byte light = face == 2 ? (byte)255 : face == 3 ? (byte)150 : (byte)215;
+                Rlgl.Color4ub(light, light, light, 255);
+                for (int corner = 0; corner < 4; corner++)
+                {
+                    Rlgl.TexCoord2f(corner is 0 or 3 ? u0 : u1, corner < 2 ? v1 : v0);
+                    var vertex = origin + FallingFaces[face][corner]; Rlgl.Vertex3f(vertex.X, vertex.Y, vertex.Z);
+                }
+            }
+            Rlgl.End();
+        }
+        Rlgl.SetTexture(0);
     }
 
     /// <summary>Draw before BeginMode3D so voxel geometry naturally covers the sky and sun.</summary>
@@ -326,6 +399,7 @@ public sealed class BlockRenderer : IDisposable
 
     void ClearCache()
     {
+        backgroundMeshes.Reset();
         foreach (var cached in cache.Values) Release(cached);
         cache.Clear();
         visible.Clear();
@@ -632,7 +706,9 @@ public sealed class BlockRenderer : IDisposable
     public unsafe void Dispose()
     {
         if (disposed) return;
+        RequireRenderThread();
         ClearCache();
+        backgroundMeshes.Dispose();
         // UnloadMaterial also owns its texture/shader in native raylib. The
         // atlas is shared with UI icons, so free only the maps here and release
         // each shared GPU resource exactly once below.

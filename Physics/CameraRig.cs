@@ -19,19 +19,21 @@ public static class CameraRig
         if (length == 0 || distance == 0) return eye;
         direction = new((float)(direction.X / length), (float)(direction.Y / length), (float)(direction.Z / length));
         float allowed = distance;
-        // Keep the camera inside the finite horizontal world and above the floor.
-        LimitBoundary(eye.X, direction.X, Radius, World.Size - Radius, ref allowed);
-        LimitBoundary(eye.Z, direction.Z, Radius, World.Size - Radius, ref allowed);
+        // Streaming worlds have a precision limit instead of the legacy 40-block wall.
+        float minimum = world.IsStreaming ? -World.MaximumPlayerCoordinate + Radius : Radius;
+        float maximum = world.IsStreaming ? World.MaximumPlayerCoordinate - Radius : World.Size - Radius;
+        LimitBoundary(eye.X, direction.X, minimum, maximum, ref allowed);
+        LimitBoundary(eye.Z, direction.Z, minimum, maximum, ref allowed);
         if (direction.Y < 0) allowed = Math.Min(allowed, Math.Max(0, (Radius - eye.Y) / direction.Y));
         var end = eye + direction * allowed;
-        var minimum = Vector3.Min(eye, end) - new Vector3(Radius);
-        var maximum = Vector3.Max(eye, end) + new Vector3(Radius);
-        int x0 = RangeStart(minimum.X, World.Size), x1 = RangeEnd(maximum.X, World.Size);
-        int y0 = RangeStart(minimum.Y, World.Height), y1 = RangeEnd(maximum.Y, World.Height);
-        int z0 = RangeStart(minimum.Z, World.Size), z1 = RangeEnd(maximum.Z, World.Size);
+        var lowerSweep = Vector3.Min(eye, end) - new Vector3(Radius);
+        var upperSweep = Vector3.Max(eye, end) + new Vector3(Radius);
+        int x0 = RangeStart(world, 0, lowerSweep.X), x1 = RangeEnd(world, 0, upperSweep.X);
+        int y0 = RangeStart(world, 1, lowerSweep.Y), y1 = RangeEnd(world, 1, upperSweep.Y);
+        int z0 = RangeStart(world, 2, lowerSweep.Z), z1 = RangeEnd(world, 2, upperSweep.Z);
         for (int y = y0; y <= y1; y++) for (int z = z0; z <= z1; z++) for (int x = x0; x <= x1; x++)
         {
-            if (!world.Solid(new(x, y, z))) continue;
+            if (!CollisionSystem.Obstructs(world, new(x, y, z))) continue;
             var lower = new Vector3(x - Radius, y - Radius, z - Radius);
             var upper = new Vector3(x + 1 + Radius, y + 1 + Radius, z + 1 + Radius);
             if (EntryDistance(eye, direction, lower, upper, allowed, out float entry))
@@ -47,8 +49,18 @@ public static class CameraRig
     }
 
     // Clamp before converting so even a finite but enormous test coordinate remains safe.
-    static int RangeStart(float value, int limit) => (int)Math.Clamp(Math.Floor((double)value), 0, limit);
-    static int RangeEnd(float value, int limit) => (int)Math.Clamp(Math.Floor((double)value), -1, limit - 1);
+    static int RangeStart(World world, int axis, float value)
+    {
+        double lower = world.IsStreaming ? axis == 1 ? -1 : -World.MaximumPlayerCoordinate - 1 : 0;
+        double upper = world.IsStreaming ? axis == 1 ? CollisionSystem.StreamingMaximumFeetY + 3 : World.MaximumPlayerCoordinate + 1 : axis == 1 ? World.Height : World.Size;
+        return (int)Math.Clamp(Math.Floor((double)value), lower, upper);
+    }
+    static int RangeEnd(World world, int axis, float value)
+    {
+        double lower = world.IsStreaming ? axis == 1 ? -1 : -World.MaximumPlayerCoordinate - 1 : 0;
+        double upper = world.IsStreaming ? axis == 1 ? CollisionSystem.StreamingMaximumFeetY + 3 : World.MaximumPlayerCoordinate + 1 : axis == 1 ? World.Height : World.Size;
+        return (int)Math.Clamp(Math.Floor((double)value), lower - 1, upper - 1);
+    }
 
     static bool EntryDistance(Vector3 eye, Vector3 direction, Vector3 minimum, Vector3 maximum, float limit, out float entry)
     {

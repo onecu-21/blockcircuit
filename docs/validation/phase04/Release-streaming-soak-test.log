@@ -1,0 +1,8 @@
+Streaming soak started: 120 seconds of wall-clock travel; progress every 20 seconds.
+Streaming soak 20s: ticks 400, columns 9/16, load jobs 2/2, markers 9, heap 12,622,752 B.
+Streaming soak 40s: ticks 800, columns 8/16, load jobs 2/2, markers 18, heap 14,709,080 B.
+Streaming soak 60s: ticks 1200, columns 8/16, load jobs 2/2, markers 27, heap 21,723,712 B.
+Streaming soak 80s: ticks 1600, columns 9/16, load jobs 2/2, markers 36, heap 25,769,952 B.
+Streaming soak 100s: ticks 2000, columns 9/16, load jobs 2/2, markers 44, heap 25,079,424 B.
+Streaming soak measured 120.01s; flushing and checking saved reentry.
+PASS: streaming soak 120.01s, 2400 actual-time ticks, max 16/16 columns and 2/2 load jobs; 3 distant markers reloaded, jobs after dispose 0.

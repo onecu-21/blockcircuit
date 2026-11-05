@@ -1,0 +1,135 @@
+PASS: streaming terrain has explicit v2 provenance and a 64-block generation height
+PASS: the same signed chunk and seed produce identical independent 16-cubed snapshots
+PASS: workers return independently owned arrays rather than shared mutable terrain buffers
+PASS: changing the seed changes a chunk's terrain and materials
+PASS: generated terrain uses only registered built-in block identities
+PASS: bedrock remains continuous at y zero in negative-coordinate chunks
+PASS: chunks outside the generation height remain empty without wrapping vertical coordinates
+PASS: the spawn clearing stays flat at height nine with two air blocks of headroom
+PASS: adjacent horizontal and vertical chunks are independent of generation order
+PASS: parallel background generation matches sequential chunks without shared RNG or field state
+PASS: all sampled sides of adjacent chunks match an independently addressed global terrain field
+PASS: the four vertical sections agree with global terrain and tree samples at every vertical chunk face
+PASS: a tree rooted outside a chunk contributes the same canopy when that neighboring chunk is generated alone
+PASS: integer-limit chunk coordinates generate without overflow and match signed global samples
+PASS: a cancelled generation request cannot publish a completed chunk snapshot
+PASS: chunk origins outside the integer Cell domain are rejected before arithmetic
+Streaming terrain tests passed: 16
+PASS: streaming players walk through negative coordinates without the old zero-coordinate wall
+PASS: streaming players cross the old 40-block world edge while retaining floor collision
+PASS: swept collision stops a sprint at a negative-coordinate wall
+PASS: unloaded neighboring chunks act as collision barriers rather than temporary empty space
+PASS: movement resumes through a former loading frontier after its neighbor becomes available
+PASS: a player cannot fall into an unavailable lower chunk while it is loading
+PASS: streaming flight can rise above the former finite-world ceiling
+PASS: streaming and legacy finite worlds retain their separate flight height limits
+PASS: negative-coordinate diagonal sneaking preserves support at a platform corner
+PASS: third-person cameras use their full distance in loaded space beyond both old horizontal boundaries
+PASS: the camera lens stops before an unavailable chunk frontier
+PASS: solid transparent blocks obstruct the camera at negative coordinates
+PASS: enormous streaming tool movements remain bounded and cannot skip unloaded chunks
+PASS: enormous finite streaming origins are clamped before voxel range conversion
+PASS: 60/144/240 render FPS produce the same full streaming movement trajectory across zero coordinates
+PASS: support removal beyond the legacy bounds recovers unsupported circuit parts exactly once
+Streaming physics tests passed: 16
+PASS: snapshot CPU meshing matches the established world mesher attributes and circuit models
+PASS: snapshot meshing preserves the unmerged reference path as well as greedy geometry
+PASS: captured blocks, lamp power, and circuit positions remain isolated from later live-world edits
+PASS: mutating one mesh result cannot mutate the private snapshot or a subsequent worker result
+PASS: cancelled snapshot builds stop before producing mesh output
+PASS: CPU scheduling is bounded even when completed results have not yet been uploaded
+PASS: taking CPU output leaves lifecycle completion to the renderer upload owner
+PASS: CPU jobs run off the owner thread and all accepted completions leave the bounded queue
+PASS: background output matches current synchronous geometry without accessing a graphics context
+PASS: a Ready chunk can be scheduled for a fresh renderer upload
+PASS: worker threads cannot mutate the scheduler or live chunk lifecycle controls
+PASS: a block edit cancels an obsolete mesh and prevents stale CPU geometry from publishing
+PASS: a chunk invalidated during CPU work can retry from its new revision
+PASS: retry results carry the current source revision and current geometry
+PASS: neighbor boundary changes invalidate a captured halo before its mesh can be uploaded
+PASS: an unloaded chunk cannot receive the output of its previous worker
+PASS: reentering the same coordinate schedules its replacement chunk rather than the retired incarnation
+PASS: completion source identity prevents old-incarnation geometry from replacing a recreated chunk
+PASS: reset cancellation retains running CPU jobs in the concurrency budget until observed
+PASS: world replacement discards prior-world CPU output and permits new-world work after cancellation
+PASS: a reset completion can only reference the active world's current chunk
+PASS: faulted workers are observed, reported, and return their chunk to a retryable state
+PASS: reset clears an observed worker error and permits a corrected chunk to retry
+PASS: dispose cancels and joins pending CPU workers without leaving Meshing lifecycles or unobserved jobs
+PASS: a disposed mesh scheduler cannot start replacement work
+Chunk mesh scheduler tests passed: 25
+PASS: streaming worlds start the versioned generator within the configured single-worker budget
+PASS: a single-worker loading queue publishes the player column before more distant columns
+PASS: a fully loaded terrain column makes its upper empty air and player headroom available
+PASS: each owner-thread update respects both its integration and worker budgets
+PASS: negative player coordinates load a complete terrain column across signed chunk addresses
+PASS: far columns release their resident chunk payloads after loading the new player area
+PASS: an unmodified column returns with identical terrain after unloading and revisiting
+PASS: generation of the same seed and negative column is independent of earlier loading order
+PASS: modified blocks are saved before their column unloads and restored on re-entry
+PASS: fully deleted generated chunks remain known empty on re-entry instead of regenerating their original terrain
+PASS: streaming save metadata restores player state without loading every saved terrain chunk eagerly
+PASS: saving while a modified column is unloaded retains its disk references across application reload
+PASS: resident and previously unloaded edits both survive the same streamed-world save
+PASS: rapid teleports keep actual background workers and resident columns within their configured caps
+PASS: repeated long-distance travel bounds resident column counts and unloads old chunk payloads
+PASS: moving away from requested columns cancels obsolete generation work
+PASS: disposing a streamer drains its workers and prevents late jobs from publishing into the world
+PASS: active streaming ownership rejects world and low-level chunk edits before their saved terrain is available
+PASS: both edit paths resume normally once the owning streamed column is loaded
+PASS: capacity pressure can evict the previous adjacent column instead of deadlocking inside the unload margin
+PASS: streaming loads only the playable vertical range while retaining higher legacy storage references on disk
+PASS: a complete portable export preserves out-of-height data omitted from streamed residency
+PASS: invalid or duplicated v3 streaming columns are rejected before replacing the active world
+PASS: automatic unload saves retain the current player camera orientation instead of resetting it to zero
+PASS: explicit world loading disposes the old streaming owner and prevents its pending jobs from publishing late
+World streaming tests passed: 25
+PASS: a one-chunk capture budget leaves a multi-chunk save pending rather than copying every dirty chunk in one frame
+PASS: cross-frame recapture publishes the latest blocks, exact consumed inventory, time, and player metadata together
+PASS: direct legacy switch edits are detected during capture and receipt, retaining newer changes for the following save
+PASS: a failed background save preserves the original manifest and dirty data, then succeeds after the file lock is released
+PASS: public save-as coordinates with a busy streamer and copies both unloaded references and the newest resident edits
+PASS: drained background receipts cannot overwrite the completed public save-as generation or its manifest
+Streaming save integrity tests passed: 6
+PASS: the legacy catalog view exposes the same gravity metadata as the content Registry
+PASS: sand, red sand and gravel are gravity blocks while solid concrete and dripstone blocks remain supported types
+PASS: unsupported blocks detach once and begin continuous 20 TPS falling with an interpolatable previous position
+PASS: each gravity block settles on the first solid surface as its original block type
+PASS: detaching, falling and settlement do not duplicate blocks or change inventory quantities
+PASS: ordinary unsupported stone does not acquire gravity
+PASS: unsupported simulation coordinates do not create invalid saved scheduler entries
+PASS: a gravity block remains static while supported
+PASS: an idle falling system does not scan the world on subsequent ticks
+PASS: removing support wakes the block immediately above the changed cell
+PASS: a falling column lands as three distinct stacked blocks without overlap, loss or duplication
+PASS: scheduled checks and active falling updates obey independent per-tick work budgets
+PASS: deferred work eventually settles every block while retaining all 64 gravel blocks
+PASS: nonpositive work budgets are rejected rather than silently stopping simulation
+PASS: a falling block pauses at an unavailable lower chunk instead of disappearing through missing terrain
+PASS: active falling blocks identify current and next chunk ownership to prevent unsafe unloading
+PASS: falling resumes across the vertical chunk boundary once terrain is available
+PASS: a blocked player landing cell retains its falling block rather than deleting or overwriting it
+PASS: settlement retries successfully after the landing obstruction clears
+PASS: settlement recovers an obstructing wire through normal mining without losing the falling block
+PASS: an unavailable mod's active falling block retains its persistent identifier and opaque state while suspended
+PASS: serialized mid-fall state restores full block identity, stable actor ID, position and velocity
+PASS: reinstalling a mod lets its saved falling block settle with the original payload
+PASS: malformed falling states are rejected before replacing a valid active simulation
+PASS: automatic falling invalidates stale edit history instead of allowing the original source to be duplicated by undo
+PASS: block-change listeners observe exactly one static or active representation during detach and settlement
+PASS: settlement notifications publish only after the actor is removed and opaque block data is restored
+Falling-block tests passed: 27
+PASS: v4 chunk saves restore a single mid-fall block with its identity, motion and payload
+PASS: v4 chunk restored falls settle once with unchanged inventory and original block data
+PASS: v3 portable saves restore a single mid-fall block with its identity, motion and payload
+PASS: v3 portable restored falls settle once with unchanged inventory and original block data
+PASS: saving before the first gravity tick restores a queued source without prematurely extracting it
+PASS: restored scheduled gravity wakes and settles exactly once
+PASS: malformed falling metadata is rejected before replacing blocks, inventory or an active falling actor
+PASS: a world loaded without a falling block's mod suspends it while retaining named inventory and payload
+PASS: resaving without a mod and reinstalling it restores and settles the original falling block exactly once
+PASS: streamed world metadata retains an active fall while its terrain column is still unloaded
+PASS: loading a saved column resumes its paused fall across the Y16 boundary and lands only one block
+PASS: creating a new world leaves a portable backup of the previous streamed world's in-flight block
+PASS: the new-world backup resumes its fall independently without mutating the original session
+Falling persistence tests passed: 13

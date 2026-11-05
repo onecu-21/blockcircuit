@@ -1,0 +1,82 @@
+{
+  "Passed": true,
+  "Frames": 125,
+  "IdleFramesWithoutMeshBuildOrUpload": 118,
+  "Stages": [
+    {
+      "Frame": 0,
+      "MeshBuilds": 10,
+      "Uploads": 10,
+      "Allocations": 10,
+      "Released": 0,
+      "LiveVbos": 30,
+      "Chunks": 10
+    },
+    {
+      "Frame": 20,
+      "MeshBuilds": 1,
+      "Uploads": 1,
+      "Allocations": 0,
+      "Released": 0,
+      "LiveVbos": 30,
+      "Chunks": 10
+    },
+    {
+      "Frame": 40,
+      "MeshBuilds": 2,
+      "Uploads": 2,
+      "Allocations": 0,
+      "Released": 0,
+      "LiveVbos": 30,
+      "Chunks": 10
+    },
+    {
+      "Frame": 60,
+      "MeshBuilds": 1,
+      "Uploads": 1,
+      "Allocations": 0,
+      "Released": 0,
+      "LiveVbos": 30,
+      "Chunks": 10
+    },
+    {
+      "Frame": 80,
+      "MeshBuilds": 1,
+      "Uploads": 1,
+      "Allocations": 1,
+      "Released": 0,
+      "LiveVbos": 33,
+      "Chunks": 11
+    },
+    {
+      "Frame": 90,
+      "MeshBuilds": 0,
+      "Uploads": 0,
+      "Allocations": 0,
+      "Released": 1,
+      "LiveVbos": 30,
+      "Chunks": 10
+    },
+    {
+      "Frame": 100,
+      "MeshBuilds": 10,
+      "Uploads": 10,
+      "Allocations": 10,
+      "Released": 10,
+      "LiveVbos": 30,
+      "Chunks": 10
+    },
+    {
+      "Frame": 110,
+      "MeshBuilds": 1,
+      "Uploads": 1,
+      "Allocations": 0,
+      "Released": 0,
+      "LiveVbos": 30,
+      "Chunks": 10
+    }
+  ],
+  "LiveVbosAfterDispose": 0,
+  "TotalGpuMeshAllocations": 21,
+  "TotalGpuMeshesReleased": 21
+}

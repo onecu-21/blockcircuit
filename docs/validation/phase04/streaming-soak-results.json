@@ -1,0 +1,119 @@
+{
+  "SchemaVersion": 1,
+  "TimestampUtc": "2026-11-04T15:46:14.8964969Z",
+  "Success": true,
+  "Runtime": ".NET 10.0.14",
+  "OS": "Microsoft Windows 10.0.26200",
+  "Scope": "120 seconds of actual wall-clock headless streamed travel with actual elapsed-time 20 TPS accumulation. Includes background generation/save I/O and forced-GC observations, without drawing, GPU frame times, or a leak-proof/indefinite stability claim.",
+  "RequestedDurationSeconds": 120,
+  "TotalWorkloadWallSeconds": 120.6464696,
+  "Limits": {
+    "ResidentColumns": 16,
+    "LoadJobs": 2,
+    "ResidentChunks": 256,
+    "IntegrationsPerFrame": 1,
+    "UnloadsPerFrame": 1,
+    "SaveCapturesPerFrame": 2
+  },
+  "Measurement": {
+    "ElapsedSeconds": 120.0051891,
+    "ActualTicks": 2400,
+    "ExpectedTicksFromWallTime": 2400,
+    "DroppedSeconds": 0,
+    "Updates": 7744,
+    "UpdateP50Milliseconds": 0.0089,
+    "UpdateP95Milliseconds": 0.3273,
+    "UpdateP99Milliseconds": 0.5355,
+    "MaximumUpdateMilliseconds": 19.7258,
+    "MaximumResidentColumns": 16,
+    "MaximumResidentChunks": 47,
+    "MaximumLoadJobs": 2,
+    "MaximumIntegrationsPerFrame": 1,
+    "MaximumUnloadsPerFrame": 1,
+    "MaximumSaveCapturesPerFrame": 2,
+    "MarkersCreated": 53,
+    "LiveMarkerRevisits": 7,
+    "ReloadMarkersVerified": 3,
+    "KnownColumns": 477,
+    "StoredChunkReferences": 1211,
+    "JobsAfterDispose": 0,
+    "SaveBusyAfterDispose": false,
+    "ManagedHeapAfterFlushGc": 6335944,
+    "MemorySamples": [
+      {
+        "Seconds": 0,
+        "ManagedBytes": 268264,
+        "ResidentColumns": 0,
+        "ResidentChunks": 0,
+        "PendingLoadJobs": 0,
+        "KnownColumns": 0,
+        "StoredChunkReferences": 0,
+        "ActiveFallingBlocks": 0
+      },
+      {
+        "Seconds": 20.0016141,
+        "ManagedBytes": 12622752,
+        "ResidentColumns": 9,
+        "ResidentChunks": 26,
+        "PendingLoadJobs": 2,
+        "KnownColumns": 81,
+        "StoredChunkReferences": 182,
+        "ActiveFallingBlocks": 0
+      },
+      {
+        "Seconds": 40.0118031,
+        "ManagedBytes": 14709080,
+        "ResidentColumns": 8,
+        "ResidentChunks": 18,
+        "PendingLoadJobs": 2,
+        "KnownColumns": 162,
+        "StoredChunkReferences": 411,
+        "ActiveFallingBlocks": 0
+      },
+      {
+        "Seconds": 60.0150033,
+        "ManagedBytes": 21723712,
+        "ResidentColumns": 8,
+        "ResidentChunks": 15,
+        "PendingLoadJobs": 2,
+        "KnownColumns": 243,
+        "StoredChunkReferences": 611,
+        "ActiveFallingBlocks": 0
+      },
+      {
+        "Seconds": 80.0061142,
+        "ManagedBytes": 25769952,
+        "ResidentColumns": 9,
+        "ResidentChunks": 18,
+        "PendingLoadJobs": 2,
+        "KnownColumns": 324,
+        "StoredChunkReferences": 805,
+        "ActiveFallingBlocks": 0
+      },
+      {
+        "Seconds": 100.0025117,
+        "ManagedBytes": 25079424,
+        "ResidentColumns": 9,
+        "ResidentChunks": 23,
+        "PendingLoadJobs": 2,
+        "KnownColumns": 396,
+        "StoredChunkReferences": 993,
+        "ActiveFallingBlocks": 0
+      },
+      {
+        "Seconds": 120.0051891,
+        "ManagedBytes": 20885456,
+        "ResidentColumns": 9,
+        "ResidentChunks": 21,
+        "PendingLoadJobs": 0,
+        "KnownColumns": 477,
+        "StoredChunkReferences": 1211,
+        "ActiveFallingBlocks": 0
+      }
+    ]
+  },
+  "TotalAllocatedBytesIncludingWorkers": 900051896,
+  "ManagedHeapBeforeWorkloadGc": 268264,
+  "ManagedHeapAfterAllDisposalsGc": 7159152,
+  "MemoryScope": "Resident chunks are bounded; known-column and saved-file indexes intentionally grow with visited terrain. Non-forcing samples are observations rather than a process working-set measurement."
+}

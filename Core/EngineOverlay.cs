@@ -4,7 +4,7 @@ sealed partial class Game
 {
     void DrawEngineOverlay()
     {
-        Raylib.DrawRectangle(20,122,345,231,new Color(14,22,32,228));
+        Raylib.DrawRectangle(20,122,420,285,new Color(14,22,32,228));
         Raylib.DrawText("ENGINE  /  F3",34,135,17,accent);
         string[] lines=
         [
@@ -17,7 +17,9 @@ sealed partial class Game
             $"GPU uploads total {renderer.GpuUploadCount} | VBOs {renderer.GpuBufferCount}",
             $"Managed heap {GC.GetTotalMemory(false)/1048576.0:0.0} MiB",
              $"Circuit updates {world.Circuits.TotalNetworkUpdates} | undo {world.UndoCount}",
-            $"GC collections {GC.CollectionCount(0)} / {GC.CollectionCount(1)} / {GC.CollectionCount(2)}"
+            $"GC collections {GC.CollectionCount(0)} / {GC.CollectionCount(1)} / {GC.CollectionCount(2)}",
+            $"Stream columns {streamer?.ResidentColumnCount??0} | load jobs {streamer?.PendingJobs??0} | mesh jobs {renderer.PendingMeshJobs}",
+            $"Falling {world.FallingBlocks.Active.Count} | checks {world.FallingBlocks.LastScheduledChecks} | save {streamer?.SaveInProgress??false}"
         ];
         for(int i=0;i<lines.Length;i++)Raylib.DrawText(lines[i],34,160+i*18,13,Color.White);
     }

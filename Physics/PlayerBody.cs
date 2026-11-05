@@ -70,9 +70,9 @@ public sealed class PlayerBody
     {
 
         // Old saves allow a slightly taller flight range; bring them into current bounds.
-        position.X = Math.Clamp(position.X, CollisionSystem.BoundaryMargin, World.Size - CollisionSystem.BoundaryMargin);
-        position.Z = Math.Clamp(position.Z, CollisionSystem.BoundaryMargin, World.Size - CollisionSystem.BoundaryMargin);
-        position.Y = Math.Min(position.Y, CollisionSystem.MaximumFeetY);
+        position.X = Math.Clamp(position.X, CollisionSystem.MinimumHorizontal(world), CollisionSystem.MaximumHorizontal(world));
+        position.Z = Math.Clamp(position.Z, CollisionSystem.MinimumHorizontal(world), CollisionSystem.MaximumHorizontal(world));
+        position.Y = Math.Min(position.Y, CollisionSystem.MaximumFeetHeight(world));
         if (sneak && !Flying) Crouching = true;
         else if (!CollisionSystem.Collides(world, position, CollisionSystem.BodyHeight)) Crouching = false;
         double length = Math.Sqrt((double)horizontalDirection.X * horizontalDirection.X + (double)horizontalDirection.Z * horizontalDirection.Z);
@@ -150,8 +150,9 @@ public sealed class PlayerBody
     {
         // Follow short, collision-clipped steps so diagonal motion cannot cut a corner
         // or skip over an unsupported gap to another platform in a long frame.
-        float dx = Math.Clamp(moveX, -World.Size, World.Size);
-        float dz = Math.Clamp(moveZ, -World.Size, World.Size);
+        float span = world.IsStreaming ? CollisionSystem.MaximumStreamingStep : World.Size;
+        float dx = Math.Clamp(moveX, -span, span);
+        float dz = Math.Clamp(moveZ, -span, span);
         int steps = Math.Max(1, (int)Math.Ceiling(Math.Max(Math.Abs(dx), Math.Abs(dz)) / .05));
         var stepX = new Vector3(dx / steps, 0, 0);
         var stepZ = new Vector3(0, 0, dz / steps);
