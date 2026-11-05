@@ -8,15 +8,15 @@ sealed partial class Game
     Exception? reportedStreamingError;
     void EnsureStreaming()
     {
-        if (!world.IsStreaming) return;
+        if (NetworkClientActive||NetworkConnecting||!world.IsStreaming) return;
         if (!ReferenceEquals(streamedWorld, world) || streamer is null || !ReferenceEquals(world.ActiveStreamer, streamer))
         {
             streamer?.Dispose();
             streamer = new WorldStreamer(world, savePath, new StreamingOptions { MaxResidentColumns = 512 });
             streamedWorld = world;
-            world.FallingBlocks.CanLand = cell => !CollisionSystem.OverlapsPlayer(cell, feet, player.BodyHeight);
+            world.FallingBlocks.CanLand = cell => !CollisionSystem.OverlapsPlayer(cell, feet, player.BodyHeight)&&(multiplayerHost is null||!multiplayerHost.AnyPlayerOverlaps(cell));
         }
-        streamer.Update(feet, Math.Clamp((int)Math.Ceiling(settings.DrawDistance / 16), 1, 8), yaw, pitch);
+        streamer.Update(feet, Math.Clamp((int)Math.Ceiling(settings.DrawDistance / 16), 1, 8), yaw, pitch,multiplayerHost?.InterestPositions);
         if (streamer.LastError is not null && !ReferenceEquals(reportedStreamingError, streamer.LastError))
         {
             reportedStreamingError=streamer.LastError;

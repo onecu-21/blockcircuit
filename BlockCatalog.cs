@@ -183,6 +183,7 @@ public enum Block : int
     GreenGlass = 177,
     RedGlass = 178,
     BlackGlass = 179,
+    CraftingTable = 180,
 }
 
 public enum BlockCategory { Natural, Wood, Stone, Ores, Glass, Wool, Concrete, Terracotta, Decor, Circuit }
@@ -375,6 +376,7 @@ public static class BlockCatalog
         new(Block.GreenGlass, "Green Glass", BlockCategory.Glass, 0x546F35, BlockPattern.Glass, 0.2f, true),
         new(Block.RedGlass, "Red Glass", BlockCategory.Glass, 0xAE3B37, BlockPattern.Glass, 0.2f, true),
         new(Block.BlackGlass, "Black Glass", BlockCategory.Glass, 0x282D35, BlockPattern.Glass, 0.2f, true),
+        new(Block.CraftingTable, "Crafting Table", BlockCategory.Wood, 0xAE7946, BlockPattern.Planks, 0.5f),
     ];
 
     static readonly Lazy<IReadOnlyList<BlockInfo>> RegisteredPlaceable = new(() =>

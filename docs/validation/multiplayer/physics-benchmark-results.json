@@ -1,0 +1,15 @@
+{
+  "SchemaVersion": 1,
+  "Scope": "CPU only: one player walking, sprinting into a wall, jumping and sneaking at 20 TPS. No frame/FPS/GPU or long-run residency claim.",
+  "TimestampUtc": "2026-11-05T13:10:03.4719877Z",
+  "Runtime": ".NET 10.0.14",
+  "OS": "Microsoft Windows 10.0.26200",
+  "TickRate": 20,
+  "WarmupTicks": 10000,
+  "MeasuredTicks": 100000,
+  "TotalMilliseconds": 124.0747,
+  "ManagedAllocatedBytes": 0,
+  "MedianTickMicroseconds": 1.1,
+  "P95TickMicroseconds": 1.7,
+  "P99TickMicroseconds": 1.9
+}

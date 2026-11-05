@@ -1,0 +1,64 @@
+PASS: loopback peer accepts a nonblocking queued request
+PASS: TCP framing preserves sequence, Unicode payload and Vector3 fields
+PASS: accepted peer queues a response
+PASS: real TCP connection carries an independent server response
+PASS: remote shutdown closes a peer without an owner-thread read blocking
+PASS: a partial TCP prefix is not published as a message
+PASS: an incomplete TCP JSON body is not published
+PASS: arbitrarily fragmented prefix and JSON body reassemble exactly once
+PASS: fragment reassembly does not duplicate a message
+PASS: malformed JSON closes only the offending connection
+PASS: zero-length wire frames are rejected
+PASS: oversized frame headers are rejected before allocating the advertised body
+PASS: duplicate envelope fields are rejected
+PASS: negative wire sequences are rejected
+PASS: EOF in a framed JSON body closes the peer with an observed failure
+PASS: listener disposal closes accepted sessions and their remote sockets
+PASS: an undrained receive queue disconnects its peer within message and byte budgets
+PASS: listener capacity rejects a new connection while preserving its existing peer
+PASS: connection cancellation is propagated without leaving a live socket
+PASS: a real guest receives an ephemeral world replica with a separate inventory
+PASS: host accepts an in-range placement backed by the guest's real selected stack
+PASS: guest placement changes shared terrain without debiting the host's bag
+PASS: late join receives the current edited chunks and crafting table
+PASS: two real guests receive each other's public avatar identities
+PASS: replicas do not receive private reconnect identities or the host's saved profile dictionary
+PASS: conflicting placement is rejected once the cell is occupied
+PASS: rejected conflict preserves both world state and the second guest's stack
+PASS: an explicit fresh request sequence commits one edit
+PASS: a duplicate request sequence is rejected even when its payload changes
+PASS: duplicate replay cannot apply another edit or debit another item
+PASS: a far-away mine request cannot mutate terrain outside the guest's reach
+PASS: an invalid hotbar slot is rejected before changing terrain
+PASS: a reachable shared lever can be toggled by a guest
+PASS: authoritative circuit changes reach another guest's replica
+PASS: library assignment moves owned guest stock into a real hotbar slot
+PASS: guest cursor and personal crafting inputs are changed through server intents
+PASS: host validates a guest's 2x2 crafting result
+PASS: server crafting consumes exactly one guest input without touching other players' bags
+PASS: a second guest independently selects and carries a real coal stack
+PASS: authoritative right drag distributes one input into each 3x3 crafting cell
+PASS: 3x3 crafting without a reachable real crafting table preserves every input
+PASS: a valid guest 3x3 craft consumes exactly nine ingredients and grants one output
+PASS: guest shift transfer moves hotbar contents into the backpack without changing quantity
+PASS: host creates one shared pickup for a guest drop intent
+PASS: dropping transfers one unit from the guest bag into shared pickup state without duplication
+PASS: disconnect removes the departing avatar from the host roster
+PASS: reconnecting with the same private profile restores inventory, cursor and crafting inputs
+PASS: wrong password is rejected before a replica replaces the local world
+PASS: content fingerprint mismatch is rejected before world creation
+PASS: an already connected private profile cannot open a second active session
+PASS: unknown command kinds disconnect only the offending guest
+PASS: a failed hello followed by a valid hello in one batch cannot activate the rejected profile
+PASS: a mismatched protocol version is rejected during handshake
+PASS: a burst of individually small pose packets cannot multiply the server's cumulative movement allowance
+PASS: host save retains guest inventories for reconnect after loading the world
+PASS: guest sessions and host snapshots leave an unrelated singleplayer save and the host inventory unchanged
+PASS: invalid saved guest profiles reject loading before replacing world cells or any player's inventory
+PASS: a worker thread cannot pump the authoritative world session
+PASS: delayed authoritative pickup conserves combined guest bags and shared drops
+PASS: a real distant guest keeps its own column available when the host moves far away
+PASS: multiple player interests preserve streaming and per-client chunk publication budgets
+PASS: a departed distant guest's dirty column is saved and unloaded after its interest disappears
+PASS: reconnecting to an unloaded saved location reloads the edited terrain before the replica becomes ready
+Multiplayer tests passed: 63

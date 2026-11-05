@@ -1,7 +1,14 @@
 using BlockCircuit;
 
+if(args.Contains("--multiplayer-smoke-test")){new Game(smoke:true).RunMultiplayerSmoke();return;}
+if(args.Contains("--multiplayer-tests")){MultiplayerTests.Run();return;}
+if(args.Contains("--multiplayer-session-benchmark")){MultiplayerSessionBenchmark.Run();return;}
+if(args.Contains("--multiplayer-benchmark")){MultiplayerBenchmark.Run();return;}
+if(args.Contains("--inventory-smoke-test")){new Game(smoke:true).RunInventorySmoke();return;}
+if(args.Contains("--inventory-benchmark")){InventoryBenchmark.Run();return;}
 if(args.Contains("--streaming-soak-test")){StreamingSoak.Run();return;}
 if(args.Contains("--streaming-smoke-test")){StreamingSmoke.Run();return;}
+if(args.Contains("--inventory-tests")){InventoryTests.Run();InventoryGestureTests.Run();CraftingTests.Run();InventoryPersistenceTests.Run();return;}
 if(args.Contains("--self-test")){SelfTests.Run();return;}
 if(args.Contains("--streaming-tests")){StreamingTerrainTests.Run();StreamingPhysicsTests.Run();ChunkMeshSchedulerTests.Run();WorldStreamingTests.Run();StreamingSaveIntegrityTests.Run();FallingBlockTests.Run();FallingPersistenceTests.Run();return;}
 if(args.Contains("--falling-tests")){FallingBlockTests.Run();FallingPersistenceTests.Run();return;}

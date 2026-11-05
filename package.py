@@ -52,8 +52,11 @@ def main():
     docs = [ROOT / name for name in ("README.md", "ENGINE-NOTES.md", "GRAPHICS-TERRAIN.md", ".gitignore", "package.py", *PREVIEWS)]
     reports = [ROOT / name for name in REPORTS if (ROOT / name).is_file()]
     optional_previews = [ROOT / name for name in OPTIONAL_PREVIEWS if (ROOT / name).is_file()]
+    assets = sorted(path for path in (ROOT / "Assets").rglob("*") if path.is_file())
     require_files([
         published / "BlockCircuit.exe",
+        published / "Assets" / "recipes.json",
+        ROOT / "Assets" / "recipes.json",
         published / "BlockCircuit.dll",
         published / "BlockCircuit.runtimeconfig.json",
         published / "raylib.dll",
@@ -77,7 +80,7 @@ def main():
     windows.update({path.relative_to(ROOT).as_posix(): path for path in licenses})
     source = {
         "BlockCircuit/" + path.relative_to(ROOT).as_posix(): path
-        for path in [*sources, *docs, *licenses, *reports, *optional_previews]
+        for path in [*sources, *assets, *docs, *licenses, *reports, *optional_previews]
     }
 
     write_archive(ROOT.parent / "BlockCircuit-windows-x64.zip", windows)

@@ -1,0 +1,93 @@
+PASS: block edits queue circuit events before processing
+PASS: one event batch builds two independent cached circuit networks
+PASS: toggling one network updates only that network and preserves remote power
+PASS: incremental power matches the independent full BFS oracle
+PASS: unrelated non-circuit edits perform no circuit network updates
+PASS: an unchanged circuit tick does not invalidate chunk meshes
+PASS: batched topology edits with unchanged final power do not dirty meshes again during circuit evaluation
+PASS: removing a wire splits connectivity and leaves independent networks powered
+PASS: replacing a wire merges cached networks and restores attenuated signal
+PASS: lamps terminate signals and inactive levers do not relay power
+PASS: multiple active sources preserve the strongest signal
+PASS: 200 seeded edit batches match full BFS after splits, merges, replacements, and source changes
+PASS: rebuilding the connection cache preserves incremental circuit results
+PASS: successful block placement creates one undo record
+PASS: undo placement restores blocks and exact inventory
+PASS: redo placement reapplies blocks and exact inventory debit
+PASS: mining a placed block succeeds
+PASS: mining undo/redo restores blocks and inventory without duplication
+PASS: failed edits do not enter undo history
+PASS: support mining and automatic lever reclamation form one history transaction
+PASS: undo/redo support removal restores dependent blocks, lever state, circuit power, and inventory
+PASS: lever toggles are undoable without touching inventory
+PASS: rejecting a later restored block cancels the entire undo atomically
+PASS: a rejected undo stays available for a later valid attempt
+PASS: collision rejection leaves redo state and inventory untouched
+PASS: a new edit after undo discards the abandoned redo branch
+PASS: edit history retains at most 128 transactions
+PASS: bounded history discards only the oldest edits and maintains coherent state
+PASS: explicit history clearing empties both stacks
+PASS: loading a save resets edit history and reconstructs valid circuit caches
+PASS: 30/60/144 render FPS produce identical 120-tick movement and gravity results
+PASS: a long render stall runs at most eight simulation ticks and records dropped backlog
+PASS: pausing resets leftover simulation time instead of causing a catch-up step
+PASS: invalid frame times are rejected and zero time never advances simulation
+PASS: fixed-step gravity lands on a solid floor without sinking
+PASS: jumping requires grounded contact and a second airborne jump cannot reset velocity
+PASS: a complete jump returns to the same ground height
+PASS: horizontal movement stops at walls without overlap
+PASS: swept collision prevents a fast movement step from tunneling through a one-block wall
+PASS: player overlap checks distinguish blocked and safe block restoration positions
+PASS: flight ascends while suppressing gravity velocity
+PASS: leaving flight restores fixed-step gravity
+PASS: a missing settings file uses defaults without an error warning
+PASS: malformed settings recover to defaults with a readable warning
+PASS: settings clamp controls and replace non-placeable or invalid hotbar slots
+PASS: a hotbar with the wrong length falls back to all nine default slots
+PASS: eight-slot settings preserve custom blocks and selection while adding slot nine
+PASS: migrated hotbars remain stable after saving and reloading
+PASS: graphics controls and all nine custom hotbar slots including the selected ninth slot survive settings save/load
+PASS: applying settings does not share mutable hotbar storage with the live palette
+PASS: the default simulation clock advances in 50 ms steps at 20 TPS
+PASS: a frame before the 50 ms boundary interpolates without running an early tick
+PASS: simulation callbacks receive a fixed 50 ms timestep
+PASS: crossing exactly 50 ms runs one simulation tick and leaves no backlog
+PASS: interpolation advances midway through a tick while simulation remains unchanged
+PASS: pausing clears interpolation backlog while preserving completed tick counts
+PASS: 30 render FPS produces exactly 600 ticks over 30 seconds without drift
+PASS: 60 render FPS produces exactly 600 ticks over 30 seconds without drift
+PASS: 144 render FPS produces exactly 600 ticks over 30 seconds without drift
+PASS: 240 render FPS produces exactly 600 ticks over 30 seconds without drift
+PASS: irregular render partitions retain all 600 ticks over 30 seconds
+PASS: a one-second stall obeys a two-tick catch-up budget and accounts for 900 ms dropped time
+PASS: invalid wall times are rejected and a zero-length render frame creates no ticks
+PASS: a jump pressed and released between ticks survives while the latest movement state is consumed
+PASS: a buffered jump is consumed once while held movement persists across catch-up ticks
+PASS: holding Space remains active across successive simulation ticks
+PASS: opening a menu clears buffered jump, movement, flight, and sneak input
+PASS: a short jump press released between 60 FPS frames reaches exactly the first 20 TPS movement tick
+PASS: a short jump press released between 144 FPS frames reaches exactly the first 20 TPS movement tick
+PASS: a short jump press released between 240 FPS frames reaches exactly the first 20 TPS movement tick
+PASS: a queued flight toggle remains pending and does not change physics before the next tick
+PASS: a fixed simulation tick applies a queued flight toggle exactly once
+PASS: two flight toggles captured before the same tick cancel by parity
+PASS: opening a menu clears a flight toggle queued before the next simulation tick
+PASS: a 20 TPS jump follows the independent trajectory and reaches an approximately 1.2522-block apex
+PASS: a complete 20 TPS jump lands exactly on its original floor without penetration
+PASS: free fall applies 0.08 blocks per tick gravity and vertical drag after movement
+PASS: ordinary ground walking converges to approximately 4.31718 blocks per second
+PASS: releasing movement preserves momentum briefly and ordinary ground friction slows it
+PASS: ordinary ground friction brings released movement to rest
+PASS: diagonal walking cannot exceed straight-line ground movement speed
+PASS: sprinting and sneaking converge to approximately 5.61233 and 1.29515 blocks per second
+PASS: airborne movement preserves horizontal momentum with 0.91 drag per fixed tick
+PASS: 20 TPS diagonal sneaking remains supported at the corner of a one-block ledge
+PASS: sprinting into a wall clips position and clears blocked-axis momentum
+PASS: a jump under a low ceiling stops the head without penetrating the roof
+PASS: 30/60/144/240 render FPS produce identical positions, velocities, and ground contact at every walking, jump, collision, and release tick
+PASS: flight moves at its chosen speed on each axis without applying gravity
+PASS: leaving flight restores gravity within two fixed ticks
+PASS: teleporting clears old movement momentum before a new simulation step
+PASS: the 240 FPS render target is accepted and survives settings save/load
+Physics foundation tests passed: 41
+All 50 gameplay checks passed (headless).

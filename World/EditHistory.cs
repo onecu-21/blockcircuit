@@ -8,6 +8,8 @@ internal sealed class EditTransaction
 {
     public Dictionary<Cell, EditCellChange> Cells { get; } = [];
     public Dictionary<Block, int> InventoryDeltas { get; } = [];
+    public PlayerInventoryState? ItemsBefore { get; set; }
+    public PlayerInventoryState? ItemsAfter { get; set; }
     public bool HasChanges => Cells.Count > 0 || InventoryDeltas.Count > 0;
 
     public void RecordCell(Cell cell, EditCellState before, EditCellState after)

@@ -1,0 +1,25 @@
+{
+  "TimestampUtc": "2026-11-05T12:30:49.1333865Z",
+  "Runtime": ".NET 10.0.14",
+  "Scope": "Headless owner-thread inventory operations after 50 warmup cycles per scenario. Includes snapshot validation and history; no GPU, storage I/O or frame-time claim.",
+  "PlacementAndUndo": {
+    "Samples": 2000,
+    "P50Milliseconds": 0.0125,
+    "P95Milliseconds": 0.0228,
+    "P99Milliseconds": 0.0288,
+    "MaximumMilliseconds": 0.5814,
+    "TotalMilliseconds": 29.88969999999996,
+    "AllocatedBytes": 45568000
+  },
+  "CompressionAndUnpacking": {
+    "Samples": 500,
+    "P50Milliseconds": 0.0814,
+    "P95Milliseconds": 0.0948,
+    "P99Milliseconds": 0.2085,
+    "MaximumMilliseconds": 0.3557,
+    "TotalMilliseconds": 42.945399999999964,
+    "AllocatedBytes": 18812000
+  },
+  "ExactSlotLayoutPreserved": true,
+  "CraftCountsPreserved": true
+}

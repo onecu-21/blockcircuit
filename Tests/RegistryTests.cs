@@ -87,8 +87,8 @@ static class RegistryTests
     static void TestBootstrapAndRuntimeBlocks(Action<bool, string> check)
     {
         var defaults = GameRegistries.Default;
-        check(defaults.Blocks.Count == 180 && defaults.Items.Count == 178 && defaults.EntityTypes.IsFrozen,
-            "core bootstrap registers all 180 blocks and 178 placeable block items before freezing");
+        check(defaults.Blocks.Count == 181 && defaults.Items.Count == 180 && defaults.EntityTypes.IsFrozen,
+            "core bootstrap retains legacy blocks and registers the crafting table and stick before freezing");
         check(Enum.GetValues<Block>().Where(block => (int)block >= 0 && (int)block < 180)
                 .All(block => defaults.Blocks.GetInfo(block).Id == block && defaults.Blocks.GetBlock(defaults.Blocks.GetId(block)) == block),
             "all legacy block constants resolve through the same built-in Registry");
@@ -102,7 +102,7 @@ static class RegistryTests
             registries.Items.Register(new ContentId("extension:component"), new ItemDefinition("Component"));
             registries.EntityTypes.Register(new ContentId("extension:machine"), new EntityTypeDefinition("Machine"));
         });
-        check((int)large > 255 && extended.Blocks.GetInfo(large).Id == large && extended.Blocks.Count == 480,
+        check((int)large > 255 && extended.Blocks.GetInfo(large).Id == large && extended.Blocks.Count == 481,
             "runtime block identities and metadata support more than 255 registered blocks");
         check(extended.Items.Get(new ContentId("extension:component")).Name == "Component" &&
               extended.EntityTypes.Get(new ContentId("extension:machine")).Name == "Machine",

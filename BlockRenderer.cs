@@ -517,6 +517,13 @@ public sealed class BlockRenderer : IDisposable
                 }
                 break;
             case BlockPattern.Planks:
+                if(info.Id==Block.CraftingTable){
+                    bool border=x is 0 or 15||y is 0 or 15;
+                    bool grid=face==1&&(x is 5 or 10||y is 5 or 10);
+                    c=Shade(tint,border?.45f:grid?.58f:noise);
+                    if(face!=1&&(x is 3 or 12)&&y>5)c=Shade(tint,.55f);
+                    break;
+                }
                 c=Shade(tint,noise*(y%4==0?1.12f:1f));
                 if (y%4==3 || (x+(y/4%2)*8)%16==0) c=Shade(tint,.64f);
                 else if (hash%11==0) c=Shade(c,.86f);

@@ -1,0 +1,30 @@
+{
+  "SchemaVersion": 1,
+  "TimestampUtc": "2026-11-05T13:10:04.166841Z",
+  "Runtime": ".NET 10.0.14",
+  "OS": "Microsoft Windows 10.0.26200",
+  "Scope": "32 sparse signed-coordinate chunks, five samples; synchronous JSON, checksum verification and file flush. Not FPS or streaming performance.",
+  "Samples": 5,
+  "ChunkCount": 32,
+  "FullSave": {
+    "MedianMilliseconds": 50.071,
+    "MedianAllocatedBytes": 1832728,
+    "WrittenChunks": 32,
+    "ReusedChunks": 0
+  },
+  "UnchangedSave": {
+    "MedianMilliseconds": 9.0453,
+    "MedianAllocatedBytes": 723536,
+    "WrittenChunks": 0,
+    "ReusedChunks": 32
+  },
+  "OneDirtySave": {
+    "MedianMilliseconds": 10.1691,
+    "MedianAllocatedBytes": 778664,
+    "WrittenChunks": 1,
+    "ReusedChunks": 31
+  },
+  "LoadMilliseconds": 60.8542,
+  "LoadAllocatedBytes": 2680656,
+  "ExactContentRoundtrip": true
+}

@@ -1,0 +1,468 @@
+[
+  {
+    "id": "blockcircuit:oak_planks",
+    "type": "shapeless",
+    "ingredients": [
+      "blockcircuit:oak_log"
+    ],
+    "result": {
+      "item": "blockcircuit:oak_planks",
+      "count": 4
+    }
+  },
+  {
+    "id": "blockcircuit:birch_planks",
+    "type": "shapeless",
+    "ingredients": [
+      "blockcircuit:birch_log"
+    ],
+    "result": {
+      "item": "blockcircuit:birch_planks",
+      "count": 4
+    }
+  },
+  {
+    "id": "blockcircuit:spruce_planks",
+    "type": "shapeless",
+    "ingredients": [
+      "blockcircuit:spruce_log"
+    ],
+    "result": {
+      "item": "blockcircuit:spruce_planks",
+      "count": 4
+    }
+  },
+  {
+    "id": "blockcircuit:jungle_planks",
+    "type": "shapeless",
+    "ingredients": [
+      "blockcircuit:jungle_log"
+    ],
+    "result": {
+      "item": "blockcircuit:jungle_planks",
+      "count": 4
+    }
+  },
+  {
+    "id": "blockcircuit:acacia_planks",
+    "type": "shapeless",
+    "ingredients": [
+      "blockcircuit:acacia_log"
+    ],
+    "result": {
+      "item": "blockcircuit:acacia_planks",
+      "count": 4
+    }
+  },
+  {
+    "id": "blockcircuit:dark_oak_planks",
+    "type": "shapeless",
+    "ingredients": [
+      "blockcircuit:dark_oak_log"
+    ],
+    "result": {
+      "item": "blockcircuit:dark_oak_planks",
+      "count": 4
+    }
+  },
+  {
+    "id": "blockcircuit:mangrove_planks",
+    "type": "shapeless",
+    "ingredients": [
+      "blockcircuit:mangrove_log"
+    ],
+    "result": {
+      "item": "blockcircuit:mangrove_planks",
+      "count": 4
+    }
+  },
+  {
+    "id": "blockcircuit:cherry_planks",
+    "type": "shapeless",
+    "ingredients": [
+      "blockcircuit:cherry_log"
+    ],
+    "result": {
+      "item": "blockcircuit:cherry_planks",
+      "count": 4
+    }
+  },
+  {
+    "id": "blockcircuit:oak_sticks",
+    "type": "shaped",
+    "pattern": [
+      "P",
+      "P"
+    ],
+    "key": {
+      "P": "blockcircuit:oak_planks"
+    },
+    "result": {
+      "item": "blockcircuit:stick",
+      "count": 4
+    }
+  },
+  {
+    "id": "blockcircuit:oak_table",
+    "type": "shaped",
+    "pattern": [
+      "PP",
+      "PP"
+    ],
+    "key": {
+      "P": "blockcircuit:oak_planks"
+    },
+    "result": {
+      "item": "blockcircuit:crafting_table",
+      "count": 1
+    }
+  },
+  {
+    "id": "blockcircuit:birch_sticks",
+    "type": "shaped",
+    "pattern": [
+      "P",
+      "P"
+    ],
+    "key": {
+      "P": "blockcircuit:birch_planks"
+    },
+    "result": {
+      "item": "blockcircuit:stick",
+      "count": 4
+    }
+  },
+  {
+    "id": "blockcircuit:birch_table",
+    "type": "shaped",
+    "pattern": [
+      "PP",
+      "PP"
+    ],
+    "key": {
+      "P": "blockcircuit:birch_planks"
+    },
+    "result": {
+      "item": "blockcircuit:crafting_table",
+      "count": 1
+    }
+  },
+  {
+    "id": "blockcircuit:spruce_sticks",
+    "type": "shaped",
+    "pattern": [
+      "P",
+      "P"
+    ],
+    "key": {
+      "P": "blockcircuit:spruce_planks"
+    },
+    "result": {
+      "item": "blockcircuit:stick",
+      "count": 4
+    }
+  },
+  {
+    "id": "blockcircuit:spruce_table",
+    "type": "shaped",
+    "pattern": [
+      "PP",
+      "PP"
+    ],
+    "key": {
+      "P": "blockcircuit:spruce_planks"
+    },
+    "result": {
+      "item": "blockcircuit:crafting_table",
+      "count": 1
+    }
+  },
+  {
+    "id": "blockcircuit:jungle_sticks",
+    "type": "shaped",
+    "pattern": [
+      "P",
+      "P"
+    ],
+    "key": {
+      "P": "blockcircuit:jungle_planks"
+    },
+    "result": {
+      "item": "blockcircuit:stick",
+      "count": 4
+    }
+  },
+  {
+    "id": "blockcircuit:jungle_table",
+    "type": "shaped",
+    "pattern": [
+      "PP",
+      "PP"
+    ],
+    "key": {
+      "P": "blockcircuit:jungle_planks"
+    },
+    "result": {
+      "item": "blockcircuit:crafting_table",
+      "count": 1
+    }
+  },
+  {
+    "id": "blockcircuit:acacia_sticks",
+    "type": "shaped",
+    "pattern": [
+      "P",
+      "P"
+    ],
+    "key": {
+      "P": "blockcircuit:acacia_planks"
+    },
+    "result": {
+      "item": "blockcircuit:stick",
+      "count": 4
+    }
+  },
+  {
+    "id": "blockcircuit:acacia_table",
+    "type": "shaped",
+    "pattern": [
+      "PP",
+      "PP"
+    ],
+    "key": {
+      "P": "blockcircuit:acacia_planks"
+    },
+    "result": {
+      "item": "blockcircuit:crafting_table",
+      "count": 1
+    }
+  },
+  {
+    "id": "blockcircuit:dark_oak_sticks",
+    "type": "shaped",
+    "pattern": [
+      "P",
+      "P"
+    ],
+    "key": {
+      "P": "blockcircuit:dark_oak_planks"
+    },
+    "result": {
+      "item": "blockcircuit:stick",
+      "count": 4
+    }
+  },
+  {
+    "id": "blockcircuit:dark_oak_table",
+    "type": "shaped",
+    "pattern": [
+      "PP",
+      "PP"
+    ],
+    "key": {
+      "P": "blockcircuit:dark_oak_planks"
+    },
+    "result": {
+      "item": "blockcircuit:crafting_table",
+      "count": 1
+    }
+  },
+  {
+    "id": "blockcircuit:mangrove_sticks",
+    "type": "shaped",
+    "pattern": [
+      "P",
+      "P"
+    ],
+    "key": {
+      "P": "blockcircuit:mangrove_planks"
+    },
+    "result": {
+      "item": "blockcircuit:stick",
+      "count": 4
+    }
+  },
+  {
+    "id": "blockcircuit:mangrove_table",
+    "type": "shaped",
+    "pattern": [
+      "PP",
+      "PP"
+    ],
+    "key": {
+      "P": "blockcircuit:mangrove_planks"
+    },
+    "result": {
+      "item": "blockcircuit:crafting_table",
+      "count": 1
+    }
+  },
+  {
+    "id": "blockcircuit:cherry_sticks",
+    "type": "shaped",
+    "pattern": [
+      "P",
+      "P"
+    ],
+    "key": {
+      "P": "blockcircuit:cherry_planks"
+    },
+    "result": {
+      "item": "blockcircuit:stick",
+      "count": 4
+    }
+  },
+  {
+    "id": "blockcircuit:cherry_table",
+    "type": "shaped",
+    "pattern": [
+      "PP",
+      "PP"
+    ],
+    "key": {
+      "P": "blockcircuit:cherry_planks"
+    },
+    "result": {
+      "item": "blockcircuit:crafting_table",
+      "count": 1
+    }
+  },
+  {
+    "id": "blockcircuit:coal_block_compress",
+    "type": "shaped",
+    "pattern": [
+      "XXX",
+      "XXX",
+      "XXX"
+    ],
+    "key": {
+      "X": "blockcircuit:coal"
+    },
+    "result": {
+      "item": "blockcircuit:coal_block",
+      "count": 1
+    }
+  },
+  {
+    "id": "blockcircuit:coal_block_unpack",
+    "type": "shapeless",
+    "ingredients": [
+      "blockcircuit:coal_block"
+    ],
+    "result": {
+      "item": "blockcircuit:coal",
+      "count": 9
+    }
+  },
+  {
+    "id": "blockcircuit:iron_block_compress",
+    "type": "shaped",
+    "pattern": [
+      "XXX",
+      "XXX",
+      "XXX"
+    ],
+    "key": {
+      "X": "blockcircuit:iron"
+    },
+    "result": {
+      "item": "blockcircuit:iron_block",
+      "count": 1
+    }
+  },
+  {
+    "id": "blockcircuit:iron_block_unpack",
+    "type": "shapeless",
+    "ingredients": [
+      "blockcircuit:iron_block"
+    ],
+    "result": {
+      "item": "blockcircuit:iron",
+      "count": 9
+    }
+  },
+  {
+    "id": "blockcircuit:copper_block_compress",
+    "type": "shaped",
+    "pattern": [
+      "XXX",
+      "XXX",
+      "XXX"
+    ],
+    "key": {
+      "X": "blockcircuit:copper_ore"
+    },
+    "result": {
+      "item": "blockcircuit:copper_block",
+      "count": 1
+    }
+  },
+  {
+    "id": "blockcircuit:copper_block_unpack",
+    "type": "shapeless",
+    "ingredients": [
+      "blockcircuit:copper_block"
+    ],
+    "result": {
+      "item": "blockcircuit:copper_ore",
+      "count": 9
+    }
+  },
+  {
+    "id": "blockcircuit:diamond_block_compress",
+    "type": "shaped",
+    "pattern": [
+      "XXX",
+      "XXX",
+      "XXX"
+    ],
+    "key": {
+      "X": "blockcircuit:diamond_ore"
+    },
+    "result": {
+      "item": "blockcircuit:diamond_block",
+      "count": 1
+    }
+  },
+  {
+    "id": "blockcircuit:diamond_block_unpack",
+    "type": "shapeless",
+    "ingredients": [
+      "blockcircuit:diamond_block"
+    ],
+    "result": {
+      "item": "blockcircuit:diamond_ore",
+      "count": 9
+    }
+  },
+  {
+    "id": "blockcircuit:stone_bricks",
+    "type": "shaped",
+    "pattern": [
+      "SS",
+      "SS"
+    ],
+    "key": {
+      "S": "blockcircuit:stone"
+    },
+    "result": {
+      "item": "blockcircuit:stone_bricks",
+      "count": 4
+    }
+  },
+  {
+    "id": "blockcircuit:sandstone",
+    "type": "shaped",
+    "pattern": [
+      "SS",
+      "SS"
+    ],
+    "key": {
+      "S": "blockcircuit:sand"
+    },
+    "result": {
+      "item": "blockcircuit:sandstone",
+      "count": 1
+    }
+  }
+]

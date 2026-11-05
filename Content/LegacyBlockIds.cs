@@ -1,6 +1,6 @@
 namespace BlockCircuit;
 
-/// <summary>Explicit permanent names for legacy IDs 0–179. Keep this table stable when CLR names change.</summary>
+/// <summary>Explicit permanent names for legacy IDs 0–179 and appended built-ins. Keep this table stable when CLR names change.</summary>
 public static class LegacyBlockIds
 {
     static readonly string[] Names =
@@ -185,6 +185,7 @@ public static class LegacyBlockIds
         "blockcircuit:green_glass",
         "blockcircuit:red_glass",
         "blockcircuit:black_glass",
+        "blockcircuit:crafting_table",
     ];
     public static ContentId GetPersistentId(int legacyId) => (uint)legacyId < Names.Length
         ? new(Names[legacyId]) : throw new ArgumentOutOfRangeException(nameof(legacyId));

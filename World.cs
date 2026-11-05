@@ -223,7 +223,7 @@ public sealed partial class World
     public bool Mine(Cell p)
     {
         var b = Get(p);
-        if (b is Block.Air or Block.Bedrock || IsMissing(p) || Inventory[(int)b] == int.MaxValue) return false;
+        if (b is Block.Air or Block.Bedrock || IsMissing(p) || Inventory[(int)b] == int.MaxValue || !CanCollectMining(p)) return false;
         bool success = PerformEdit(() =>
         {
             ChangeInventory(b, 1);
@@ -236,7 +236,7 @@ public sealed partial class World
 
     public bool Place(Cell p, Block b)
     {
-        if (!Registries.Blocks.IsValid(b) || !(IsStreaming ? IsCellAvailable(p) && p.Y <= 255 : Inside(p)) || Get(p) != Block.Air || b is Block.Air or Block.Bedrock || Inventory[(int)b] <= 0) return false;
+        if (!Registries.Blocks.IsValid(b) || !(IsStreaming ? IsCellAvailable(p) && p.Y <= 255 : Inside(p)) || Get(p) != Block.Air || b is Block.Air or Block.Bedrock || Inventory[(int)b] <= 0 || Items is not null && Items.Available(Registries.Blocks.GetId(b)) == 0) return false;
         if (b is Block.Wire or Block.Lever && !Solid(p + new Cell(0, -1, 0))) return false;
         bool success = PerformEdit(() =>
         {
@@ -263,11 +263,12 @@ public sealed partial class World
     private bool PerformEdit(Action action)
     {
         if (currentEdit is not null) throw new InvalidOperationException("An edit is already in progress.");
-        currentEdit = new EditTransaction();
+        currentEdit = new EditTransaction { ItemsBefore = Items?.Capture() };
         try
         {
             action();
             Circuits.ProcessPending();
+            currentEdit.ItemsAfter = Items?.Capture();
             history.Record(currentEdit);
             return true;
         }
@@ -276,7 +277,12 @@ public sealed partial class World
 
     private void ChangeInventory(Block block, int delta)
     {
-        Inventory[(int)block] += delta;
+        if (Items is not null)
+        {
+            if(delta>0)Items.Reclaim(Registries.Blocks.GetId(block),delta);
+            else if(!Items.TryRemove(Registries.Blocks.GetId(block),-delta,debitSlot))throw new InvalidOperationException("Missing inventory debit.");
+        }
+        else Inventory[(int)block] += delta;
         currentEdit?.RecordInventory(block, delta);
     }
 
@@ -318,7 +324,8 @@ public sealed partial class World
                 if (wasOn != desired.SwitchOn) { Circuits.EnqueueSwitchChange(change.Cell); Chunks.MarkContentDirty(change.Cell); }
                 if (desired.Payload is not null) Chunks.MarkContentDirty(change.Cell);
             }
-            foreach (var (block, delta) in edit.InventoryDeltas) Inventory[(int)block] += sign * delta;
+            if(Items is not null && (redo ? edit.ItemsAfter : edit.ItemsBefore) is {} itemState)Items.CopyFrom(itemState);
+            else foreach (var (block, delta) in edit.InventoryDeltas) Inventory[(int)block] += sign * delta;
             Circuits.ProcessPending();
             if (redo) history.FinishRedo(); else history.FinishUndo();
             return true;
@@ -338,7 +345,7 @@ public sealed partial class World
 
     public void SaveLegacy(string path, Vector3 position, float yaw, float pitch)
     {
-        if (IsStreaming || FallingBlocks.Active.Count != 0 || Registries.Blocks.Count != BlockCatalog.Count || blockPayloads.Count != 0 || unknownInventory.Count != 0 || OccupiedCells().Any(c => !Inside(c)))
+        if (NetworkPlayers.Count!=0 || Items is not null || IsStreaming || FallingBlocks.Active.Count != 0 || Registries.Blocks.Count != BlockCatalog.Count || blockPayloads.Count != 0 || unknownInventory.Count != 0 || OccupiedCells().Any(c => !Inside(c)))
             throw new InvalidOperationException("Legacy export cannot represent extension data.");
         var data = new SaveData(2, Blocks, Switches.ToArray(), Inventory, position, yaw, pitch)
         { Seed = Seed, TerrainVersion = TerrainVersion };
@@ -357,9 +364,9 @@ public sealed partial class World
         }
         catch (JsonException e) { throw new InvalidDataException("Invalid save format", e); }
         int expectedInventory = data.Version == 1 ? 10 : BlockCatalog.Count;
-        int maxBlock = data.Version == 1 ? 9 : BlockCatalog.Count - 1;
+        int maxBlock = data.Version == 1 ? 9 : data.Inventory?.Length - 1 ?? -1;
         if (data.Version is not (1 or 2) || data.TerrainVersion is not (0 or 1) || data.Blocks is null || data.Switches is null || data.Inventory is null ||
-            data.Blocks.Length != Size * Size * Height || data.Inventory.Length != expectedInventory ||
+            data.Blocks.Length != Size * Size * Height || (data.Version == 1 ? data.Inventory.Length != expectedInventory : data.Inventory.Length is < 180 || data.Inventory.Length > expectedInventory) ||
             data.Blocks.Any(b => b > maxBlock) || data.Inventory.Any(n => n < 0) ||
             data.Switches.Any(p => !Inside(p) || data.Blocks[Index(p)] != (byte)Block.Lever) ||
             !float.IsFinite(data.Position.X) || !float.IsFinite(data.Position.Y) || !float.IsFinite(data.Position.Z) ||
@@ -384,6 +391,7 @@ public sealed partial class World
         Chunks = chunks; BindChunks(chunks);
         Seed = data.Seed;
         TerrainVersion = data.TerrainVersion;
+        RestoreInventory(null);RestoreNetworkPlayers(null);
         Inventory = inventory;
         Switches = switches;
         SetStreamingState(false, 2); FallingBlocks.Restore(null);

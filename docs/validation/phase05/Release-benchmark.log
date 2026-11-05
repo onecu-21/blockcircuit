@@ -1,0 +1,7 @@
+BLOCK / CIRCUIT — headless CPU meshing benchmark (not FPS/GPU timings)
+Terrain: 10 sparse chunks; 15,910 occupied cells
+Unit-face mesh: 14.414 ms, 4,641,944 B allocated, 7,768 quads
+Greedy mesh:    6.800 ms, 1,709,696 B allocated, 2,432 quads
+Revision cache simulation: 300 static frames → 0 mesh builds; interior edit → 1; boundary edit → 2
+Stress: 2,000 seeded edits, 20 full cache/fresh comparisons, 358 builds, 273.2 ms; no stale geometry
+Report: C:\dev\blockcircuit\artifacts\phase05-release\benchmark-results.json

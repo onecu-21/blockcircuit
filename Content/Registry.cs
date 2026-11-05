@@ -8,7 +8,7 @@ public class Registry<T> where T : notnull
     readonly Dictionary<ContentId, int> runtimeIds = [];
     public int Count => values.Count;
     public bool IsFrozen { get; private set; }
-    public int Register(ContentId id, T value)
+    public virtual int Register(ContentId id, T value)
     {
         _ = id.ToString();
         ArgumentNullException.ThrowIfNull(value);
@@ -28,7 +28,15 @@ public class Registry<T> where T : notnull
 
 public sealed record ItemDefinition(string Name, int MaxStack = 64);
 public sealed record EntityTypeDefinition(string Name);
-public sealed class ItemRegistry : Registry<ItemDefinition> { }
+public sealed class ItemRegistry : Registry<ItemDefinition>
+{
+    public override int Register(ContentId id, ItemDefinition value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        if(string.IsNullOrWhiteSpace(value.Name)||value.MaxStack is <1 or >1024)throw new ArgumentException("Item stack limit must be 1..1024.");
+        return base.Register(id,value);
+    }
+}
 public sealed class EntityTypeRegistry : Registry<EntityTypeDefinition> { }
 
 public sealed class BlockRegistry
@@ -79,6 +87,7 @@ public sealed class GameRegistries
             result.Blocks.Register(id, info with { TextureBlock = info.Id, AffectedByGravity = info.Id is Block.Sand or Block.RedSand or Block.Gravel });
             if (info.Id is not (Block.Air or Block.Bedrock)) result.Items.Register(id, new(info.Name));
         }
+        result.Items.Register(new("blockcircuit:stick"), new("Stick"));
         configure?.Invoke(result);
         result.Blocks.Freeze(); result.Items.Freeze(); result.EntityTypes.Freeze();
         return result;

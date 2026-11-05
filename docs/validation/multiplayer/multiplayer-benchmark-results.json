@@ -1,0 +1,20 @@
+{
+  "TimestampUtc": "2026-11-05T13:10:07.9911063Z",
+  "Runtime": ".NET 10.0.14",
+  "Scope": "Actual loopback TCP transfer of a captured 4096-cell chunk followed by a decoded acknowledgement. Includes both sides\u0027 JSON codec, background scheduling and owner polling at 1ms intervals. Does not measure WAN latency, rendering, gameplay server CPU, FPS or process residency.",
+  "Warmup": 20,
+  "Samples": 200,
+  "CellsPerChunk": 4096,
+  "ChunkApplicationFrameBytes": 8369,
+  "AcknowledgementApplicationFrameBytes": 46,
+  "MeasuredApplicationFrameBytes": 1683000,
+  "P50Milliseconds": 3.6538,
+  "P95Milliseconds": 4.3232,
+  "P99Milliseconds": 4.6509,
+  "MaximumMilliseconds": 5.6526,
+  "TotalMilliseconds": 741.7690000000006,
+  "ManagedAllocatedBytesIncludingWorkers": 39055000,
+  "MaximumQueuedMessages": 128,
+  "MaximumQueuedBytes": 16777216,
+  "AllChunkPayloadsAndAcknowledgementsVerified": true
+}

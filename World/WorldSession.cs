@@ -20,6 +20,7 @@ public static class WorldSession
         var candidate = current.IsStreaming && !legacyTerrain ? World.CreateStreaming(seed, current.Registries)
             : new World(seed: seed, legacyTerrain: legacyTerrain, registries: current.Registries);
         if (current.IsStreaming) candidate.EnableStreaming();
+        if (current.Items is not null) candidate.EnableSlotInventory();
         string backup = Path.Combine(directory, "backups",
             $"world-{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.json");
         current.ExportSnapshot(backup, position, yaw, pitch);

@@ -10,6 +10,7 @@ sealed partial class Game
 
     void OpenNewWorld()
     {
+        if(NetworkActive||NetworkConnecting){Notice("Leave multiplayer with F8 before creating another world.");return;}
         newWorldOpen = true;
         newWorldSeed = world.Seed.ToString(CultureInfo.InvariantCulture);
         classicTerrain = false;
@@ -68,6 +69,7 @@ sealed partial class Game
                     StopStreaming(true);
                     var created = WorldSession.Create(world, feet, yaw, pitch, seed, classicTerrain, savePath);
                     world = created.World;
+                    world.EnableSlotInventory(palette.Hotbar);SyncHotbar();
                     starterCircuitPending=true;
                     feet = world.Spawn(); previousFeet = feet; yaw = MathF.PI; pitch = -.18f;
                     player.VerticalVelocity = 0; player.Flying = false; paused = false;

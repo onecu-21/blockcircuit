@@ -36,6 +36,8 @@ sealed partial class Game
     void ToggleInventory()
     {
         inventoryOpen=!inventoryOpen;searchFocused=false;mining=null;mineTime=0;
+        if(inventoryOpen){libraryView=false;craftingSize=2;craftingBench=null;}
+        inventoryGesture.Cancel();
         if(inventoryOpen)Raylib.EnableCursor();else Raylib.DisableCursor();
     }
     void DrawTextFit(string text,int x,int y,int size,int maxWidth,Color color)
@@ -50,7 +52,7 @@ sealed partial class Game
         DrawTextFit(text,(int)r.X+10,(int)r.Y+10,15,(int)r.Width-18,active?ink:Color.White);
         return hover&&Raylib.IsMouseButtonPressed(MouseButton.Left);
     }
-    void DrawPalette()
+    void DrawLibrary()
     {
         var r=PaletteRect;int x=(int)r.X,y=(int)r.Y,w=(int)r.Width,h=(int)r.Height;
         Raylib.DrawRectangle(0,0,Raylib.GetScreenWidth(),Raylib.GetScreenHeight(),new Color(9,16,24,200));
@@ -58,6 +60,7 @@ sealed partial class Game
         Raylib.DrawRectangle(x,y,4,h,accent);
         Raylib.DrawText("BLOCK LIBRARY",x+24,y+21,28,Color.White);
         Raylib.DrawText($"{palette.Blocks.Placeable.Count()} blocks  /  choose a block for your hotbar",x+25,y+57,15,muted);
+        if(world.Items is not null&&Button(new(x+w-231,y+20,125,35),"INVENTORY")){libraryView=false;searchFocused=false;return;}
         if(Button(new(x+w-99,y+20,76,35),"CLOSE")){ToggleInventory();return;}
         int gridX=x+180,gridY=y+120,gridW=w-202;
         var search=new Rectangle(gridX,y+79,gridW,32);
@@ -102,7 +105,7 @@ sealed partial class Game
             if(hover)
             {
                 hovered=b;
-                if(Raylib.IsMouseButtonPressed(MouseButton.Left)){palette.Assign(b.Id);Notice($"{b.Name} selected in slot {palette.SelectedSlot+1}.");}
+                if(Raylib.IsMouseButtonPressed(MouseButton.Left)){PickBlock(b.Id);Notice($"{b.Name} selected in slot {palette.SelectedSlot+1}.");}
             }
         }
         if(items.Length==0)Raylib.DrawText("No matching blocks. Try another name or category.",gridX+10,gridY+25,17,muted);

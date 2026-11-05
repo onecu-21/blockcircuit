@@ -15,6 +15,8 @@ public sealed record ChunkWorldManifest(int Version, string Generation, int Seed
     public int GenerationVersion { get; init; } = 2;
     public ColumnCoord[]? KnownColumns { get; init; } = [];
     public FallingBlockSaveState? FallingBlocks { get; init; }
+    public InventorySaveState? ItemInventory { get; init; }
+    public Dictionary<string,NetworkPlayerSaveData>? NetworkPlayers { get; init; }
 }
 public sealed record ChunkFileData(int Version, ChunkCoord Coord, string[] Palette, int[] Cells, Cell[] Switches, World.CellData[] BlockData);
 
@@ -124,11 +126,12 @@ public static class ChunkSaveStore
             var manifest = new ChunkWorldManifest(4, Guid.NewGuid().ToString("N"), world.Seed, world.TerrainVersion,
                 world.TickCount, position, yaw, pitch, counts, references.ToArray())
             { IsStreaming = world.IsStreaming, GenerationVersion = world.GenerationVersion,
-                KnownColumns = world.KnownColumns.ToArray(), FallingBlocks = world.FallingBlocks.Capture() };
+                KnownColumns = world.KnownColumns.ToArray(), FallingBlocks = world.FallingBlocks.Capture(), ItemInventory = world.CaptureInventory(), NetworkPlayers = world.CaptureNetworkPlayers() };
             checkpoint?.Invoke(SaveCheckpoint.ChunksWritten);
             string text = JsonSerializer.Serialize(manifest, Options);
             if (System.Text.Encoding.UTF8.GetByteCount(text) > 64L * 1024 * 1024) throw new InvalidDataException("World manifest exceeds 64 MiB.");
             if (migrated) AtomicSave.BackupLegacy(path);
+            else if(previous is { ItemInventory: null } && world.Items is not null)AtomicSave.BackupLegacy(path, maximumVersion:4);
             checkpoint?.Invoke(SaveCheckpoint.BeforeManifestCommit);
             AtomicSave.Write(path, text, File.Exists(path) && primaryHealthy ? path + ".bak" : null);
             committed = true;
@@ -210,6 +213,8 @@ public static class ChunkSaveStore
     internal static (Vector3 Position, float Yaw, float Pitch) Load(World world, string path, JsonElement root, bool recovered)
     {
         var manifest = ParseManifest(root);
+        World.ValidateInventory(manifest.ItemInventory,manifest.Counts,world.Registries);
+        World.ValidateNetworkPlayers(manifest.NetworkPlayers,world.Registries);
         ValidateDataDirectory(path + ".chunks");
         if (manifest.IsStreaming || world.IsStreaming)
         {
@@ -221,6 +226,8 @@ public static class ChunkSaveStore
                 if (world.Registries.Blocks.TryGetBlock(new(pair.Key), out var block)) loadedInventory[(int)block] = pair.Value;
                 else missingCounts.Add(pair.Key, pair.Value);
             world.InstallState(new ChunkManager(world.Registries.Blocks), [], loadedInventory, missingCounts, [], manifest.Seed, manifest.TerrainVersion, manifest.TickCount);
+            world.RestoreInventory(manifest.ItemInventory);
+        world.RestoreNetworkPlayers(manifest.NetworkPlayers);
             var knownColumns = manifest.KnownColumns!.ToHashSet();
             if (!manifest.IsStreaming)
             {
@@ -283,6 +290,8 @@ public static class ChunkSaveStore
             if (world.Registries.Blocks.TryGetBlock(new(pair.Key), out var block)) inventory[(int)block] = pair.Value;
             else missing.Add(pair.Key, pair.Value);
         world.InstallState(manager, payloads, inventory, missing, switches, manifest.Seed, manifest.TerrainVersion, manifest.TickCount);
+        world.RestoreInventory(manifest.ItemInventory);
+        world.RestoreNetworkPlayers(manifest.NetworkPlayers);
         world.Chunks.MarkAllSaved();
         world.StoredPath = path; world.StoredGeneration = manifest.Generation;
         world.LastLoadRecovered = recovered;

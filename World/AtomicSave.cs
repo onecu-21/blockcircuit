@@ -27,9 +27,22 @@ internal static class AtomicSave
     {
         if (!File.Exists(path)) return;
         using var document = JsonDocument.Parse(File.ReadAllText(path));
-        if (!document.RootElement.TryGetProperty("Version", out var version) || !version.TryGetInt32(out int number) || number is not (1 or 2 or 3) || number > maximumVersion) return;
+        if (!document.RootElement.TryGetProperty("Version", out var version) || !version.TryGetInt32(out int number) || number is not (1 or 2 or 3 or 4) || number > maximumVersion) return;
         string directory = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(path))!, "backups");
         Directory.CreateDirectory(directory);
-        File.Copy(path, Path.Combine(directory, Path.GetFileNameWithoutExtension(path) + $"-legacy-v{number}-{Guid.NewGuid():N}.json"));
+        string backup = Path.Combine(directory, Path.GetFileNameWithoutExtension(path) + $"-legacy-v{number}-{Guid.NewGuid():N}.json");
+        if(number==4)
+        {
+            var manifest=ChunkSaveStore.ParseManifest(document.RootElement);
+            string chunks=backup+".chunks";
+            Directory.CreateDirectory(chunks);
+            foreach(var reference in manifest.Chunks)
+            {
+                string source=Path.Combine(path+".chunks",reference.File);
+                // A recovered primary may already reference a missing file; retain its raw metadata without blocking repair.
+                if(File.Exists(source))File.Copy(source,Path.Combine(chunks,reference.File));
+            }
+        }
+        File.Copy(path,backup);
     }
 }

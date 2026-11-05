@@ -36,6 +36,8 @@ public sealed partial class World
         public int GenerationVersion { get; init; } = 2;
         public ColumnCoord[]? KnownColumns { get; init; } = [];
         public FallingBlockSaveState? FallingBlocks { get; init; }
+        public InventorySaveState? ItemInventory { get; init; }
+        public Dictionary<string,NetworkPlayerSaveData>? NetworkPlayers { get; init; }
         public CellData[]? BlockData { get; init; } = [];
         public ExtraCell[]? ExtraCells { get; init; } = [];
     }
@@ -73,7 +75,7 @@ public sealed partial class World
         var data = new SnapshotData(3, palette.ToArray(), cells, Switches.Where(Inside).ToArray(), counts, position, yaw, pitch)
         {
             Seed = Seed, TerrainVersion = TerrainVersion, TickCount = TickCount,
-            IsStreaming = IsStreaming, GenerationVersion = GenerationVersion, KnownColumns = KnownColumns.ToArray(), FallingBlocks = FallingBlocks.Capture(),
+            IsStreaming = IsStreaming, GenerationVersion = GenerationVersion, KnownColumns = KnownColumns.ToArray(), FallingBlocks = FallingBlocks.Capture(), ItemInventory = CaptureInventory(), NetworkPlayers = CaptureNetworkPlayers(),
             BlockData = blockPayloads.Where(p => Inside(p.Key) && Get(p.Key) != Block.Air && p.Value.Data.HasValue).Select(p => new CellData(p.Key, p.Value.Data!.Value)).ToArray(),
             ExtraCells = OccupiedCells().Where(cell => !Inside(cell)).Select(cell => new ExtraCell(cell, GetPersistentId(cell).ToString(), GetBlockData(cell), Switches.Contains(cell))).ToArray()
         };
@@ -129,6 +131,8 @@ public sealed partial class World
             data.Cells is null || data.Cells.Length != Size * Height * Size ||
             data.Switches is null || data.Counts is null || data.BlockData is null || data.ExtraCells is null)
             throw new InvalidDataException("Invalid registry snapshot.");
+        ValidateInventory(data.ItemInventory,data.Counts,Registries);
+        ValidateNetworkPlayers(data.NetworkPlayers,Registries);
         var ids = data.Palette.Select(s => new ContentId(s)).ToArray();
         if (ids.Distinct().Count() != ids.Length || data.Cells.Any(i => (uint)i >= ids.Length))
             throw new InvalidDataException("Invalid block palette.");
@@ -178,6 +182,8 @@ public sealed partial class World
             else unknown.Add(name, count);
         }
         InstallState(chunks, payloads, inventory, unknown, allSwitches, data.Seed, data.TerrainVersion, data.TickCount);
+        RestoreInventory(data.ItemInventory);
+        RestoreNetworkPlayers(data.NetworkPlayers);
         SetStreamingState(data.IsStreaming, data.GenerationVersion, data.KnownColumns);
         if (data.FallingBlocks is not null) FallingBlocks.Restore(data.FallingBlocks);
         return (data.Position, data.Yaw, Math.Clamp(data.Pitch, -1.5f, 1.5f));
@@ -186,6 +192,7 @@ public sealed partial class World
         Dictionary<string, int> unknown, IEnumerable<Cell> switches, int seed, int terrainVersion, long ticks)
     {
         StoredPath = null; StoredGeneration = null; LastLoadRecovered = false;
+        RestoreInventory(null);RestoreNetworkPlayers(null);
         Chunks = chunks; BindChunks(chunks); blockPayloads.Clear();
         foreach (var pair in payloads) blockPayloads.Add(pair.Key, pair.Value);
         unknownInventory.Clear(); foreach (var pair in unknown) unknownInventory.Add(pair.Key, pair.Value);

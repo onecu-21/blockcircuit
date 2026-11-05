@@ -1,0 +1,67 @@
+PASS: 36 slots include nine hotbar slots, with separate 2x2 and 3x3 inputs
+PASS: collection obeys stack limits and splits across slots
+PASS: right click takes half of a stack
+PASS: right click places one item
+PASS: left click merges into a compatible stack
+PASS: shift click moves hotbar items into main storage
+PASS: drag evenly distributes once per unique destination
+PASS: 10000 seeded clicks and transfers conserve every item
+PASS: full inventory rejects collection atomically
+PASS: legacy migration prioritizes hotbar and preserves overflow without truncation
+PASS: cursor, both crafting grids, reserve and slots round trip exactly
+PASS: registered custom maximum stack sizes are enforced
+PASS: malformed slot array is rejected
+PASS: overstacked known items are rejected
+PASS: invalid registered stack limits are rejected
+PASS: failed removal does not consume partial inputs
+Inventory tests passed: 16
+PASS: press and release on a source picks up without immediately putting it back
+PASS: left drag with a carried stack spreads across visited slots
+PASS: right click source splits half using the same UI gesture controller
+PASS: right drag places one at each distinct visited destination
+PASS: canceling a held-stack gesture before release does not discard the cursor
+PASS: shift click immediately transfers without a pending drag
+PASS: a stale drag cannot transfer items into a replaced world inventory
+Inventory gesture tests passed: 7
+PASS: shapeless log recipe matches at an arbitrary 2x2 position
+PASS: craft output and exactly one input consumption commit together
+PASS: shift crafting repeats only while ingredients remain
+PASS: 2x2 planks match the crafting table recipe
+PASS: repeat crafting consumes one of each shaped input per result
+PASS: empty or stale output cannot create items
+PASS: 3x3 compression requires all nine cells and cannot match a 2x2 grid
+PASS: incompatible carried output rejects crafting without consuming ingredients
+PASS: shaped recipes match shifted and horizontally mirrored patterns
+PASS: unknown recipe items are rejected
+PASS: zero recipe results are rejected
+PASS: full destination rejects crafting atomically
+PASS: shapeless recipes consume an exact multiset including repeated ingredients
+PASS: unrelated extra grid inputs prevent a partial recipe match
+Crafting tests passed: 14
+PASS: migration preserves every legacy count including stock beyond 36 slots
+PASS: migrated starting stock leaves the 27 backpack slots available for mining
+PASS: placement consumes only the selected real hotbar stack
+PASS: undo restores exact slot layout and counts
+PASS: redo reapplies one slot debit without duplication
+PASS: inventory interaction invalidates incompatible edit history
+PASS: dropping debits the cursor and creates one persistent world pickup
+PASS: chunk save restores slots, reserve, cursor, crafting grids and pickup IDs
+PASS: portable v3 backup retains the entire item state independently
+PASS: pickup delay prevents immediate recollection
+PASS: 20 TPS pickup transfers once after its delay
+PASS: 30 edit/save/reload cycles preserve every item total
+PASS: invalid slots reject loading before mutating live world or inventory
+PASS: injected save failure preserves the last committed inventory manifest
+PASS: a full inventory cannot destroy an uncollectable mined block
+PASS: missing mod items survive resave and reinstall with their slot layout
+PASS: original 180-entry v2 saves migrate after the crafting table was appended
+PASS: new-world creation preserves the previous inventory in its standalone backup
+PASS: a full bag leaves a dropped pickup intact for a later attempt
+PASS: a later pickup succeeds exactly once after space becomes available
+PASS: mining undo restores exact empty slots and the original world cell
+PASS: the first slot save preserves an untouched original v4 migration backup
+PASS: v4 migration backup owns its chunk files after later saves prune the original versions
+PASS: migration after backup recovery repairs a primary with missing chunk files
+PASS: background save and final flush capture the newest owner-thread item state without shared live arrays
+PASS: detached streaming metadata owns independent inventory, crafting and cursor arrays
+Inventory persistence tests passed: 26

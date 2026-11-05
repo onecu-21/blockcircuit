@@ -115,6 +115,8 @@ public sealed partial class World
         IsStreaming = source.IsStreaming; GenerationVersion = source.GenerationVersion;
         Inventory = source.Inventory.ToArray();
         unknownInventory.Clear(); foreach (var pair in source.unknownInventory) unknownInventory.Add(pair.Key, pair.Value);
+        RestoreInventory(source.CaptureInventory());
+        RestoreNetworkPlayers(source.CaptureNetworkPlayers());
         KnownColumns.UnionWith(source.KnownColumns);
         StoredPath = source.StoredPath; StoredGeneration = source.StoredGeneration; LastLoadRecovered = source.LastLoadRecovered;
         foreach (var pair in source.StoredChunkReferences) StoredChunkReferences.Add(pair.Key, pair.Value);

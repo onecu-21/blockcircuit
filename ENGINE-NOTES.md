@@ -165,3 +165,11 @@ E 인벤토리, 우클릭 사용/설치, Ctrl·W 두 번 달리기, Shift 웅크
 ## Phase 04 스트리밍·낙하
 
 현재 실제 게임은 [청크 스트리밍](docs/streaming.md)과 [낙하 블록](docs/falling-blocks.md)을 사용한다. P0 메시 설명과 과거 성능 표는 당시 기록으로 보존한다. 최신525개 검사·OpenGL8모드·120초 안정성·성능 원본은 [Phase04 검증](docs/validation/phase04/README.md)을 따른다.
+
+## Phase 05 인벤토리·제작 (2026-11-05)
+
+실제 게임은 36칸(핫바9칸 포함)·제작 입력·커서·이행 보관함을 사용한다. 제작대·막대·34개 JSON 레시피, 마우스 이동/분할/드래그/Shift 클릭과 Q 버리기·지연 줍기를 연결했다. v3/v4 슬롯 저장 및 원본 v4 이행 백업을 제공한다. Debug/Release 각각588개, OpenGL9모드 통과. 계약은 [인벤토리](docs/inventory.md), 실측 CPU·할당과 화면은 [Phase05 검증](docs/validation/phase05/README.md)을 따른다. 일반 아이템 엔티티의 물리·수명은 Phase09에 남긴다.
+
+## IP 멀티플레이 (2026-11-05)
+
+사용자 추가 요청에 따라 F8 직접 접속을 구현했다. 호스트1명+참가자8명, 호스트가 승인하는 편집·개인 소지품/제작, 관심 열 복제, 아바타, 재접속 저장과 개인 월드 복귀를 지원한다. Debug/Release 각각651개, OpenGL10모드 통과. 실제 host+2client CPU·와이어 전송량·메뉴 틱·수량 보존·자원 종료는 [멀티 검증](docs/validation/multiplayer/README.md)에 기록했다. WAN/외부PC·배포본·원격CI를 실행한 결과는 아니다. [사용 안내](docs/multiplayer.md)를 따른다.

@@ -1,0 +1,6 @@
+BLOCK / CIRCUIT — incremental circuit CPU benchmark (not FPS/GPU timings)
+Fixture: 60 independent circuits; each has one lever, four wires, and one lamp; all sources initially active
+Incremental: 0.982 ms / 200 toggles, 375,240 B per sample, 6,000 visited cells total
+Full BFS:    27.098 ms / 200 toggles, 4,792,040 B per sample, 297,500 visited cells total
+Visited-cell reduction: 97.98%; unrelated block edit: 0 network updates; final power dictionaries match
+Report: C:\dev\blockcircuit\artifacts\multiplayer-release\circuit-benchmark-results.json

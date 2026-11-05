@@ -61,7 +61,7 @@ public sealed class WorldStreamer : IDisposable
         saves = new(world, path); lastAutosaveTick = world.TickCount;
     }
 
-    public void Update(Vector3 player, int radiusChunks = 2, float yaw = 0, float pitch = 0)
+    public void Update(Vector3 player, int radiusChunks = 2, float yaw = 0, float pitch = 0, IReadOnlyList<Vector3>? additionalPlayers = null)
     {
         CheckOwner(); ObjectDisposedException.ThrowIf(disposed, this);
         CollisionSystem.RequireFinite(player, nameof(player));
@@ -70,8 +70,19 @@ public sealed class WorldStreamer : IDisposable
         long started = Stopwatch.GetTimestamp();
         frame++; LastIntegrations = LastUnloads = 0;
         var center = ColumnCoord.FromPosition(player);
-        int unloadRadius = radiusChunks + options.UnloadMargin;
-        bool Wanted(ColumnCoord column) => Distance(column, center) <= radiusChunks;
+        var views=new Dictionary<ColumnCoord,int>{{center,radiusChunks}};
+        if(additionalPlayers is not null){
+            if(additionalPlayers.Count>8)throw new ArgumentOutOfRangeException(nameof(additionalPlayers));
+            foreach(var guest in additionalPlayers){
+                CollisionSystem.RequireFinite(guest,nameof(additionalPlayers));
+                if(Math.Abs(guest.X)>World.MaximumPlayerCoordinate||Math.Abs(guest.Z)>World.MaximumPlayerCoordinate)throw new ArgumentOutOfRangeException(nameof(additionalPlayers));
+                var guestCenter=ColumnCoord.FromPosition(guest);
+                views[guestCenter]=Math.Max(views.GetValueOrDefault(guestCenter),Math.Min(radiusChunks,2));
+            }
+        }
+        bool Wanted(ColumnCoord column){foreach(var v in views)if(Distance(column,v.Key)<=v.Value)return true;return false;}
+        bool NearMargin(ColumnCoord column){foreach(var v in views)if(Distance(column,v.Key)<=v.Value+options.UnloadMargin)return true;return false;}
+        long Nearest(ColumnCoord column){long result=long.MaxValue;foreach(var v in views)result=Math.Min(result,Distance(column,v.Key));return result;}
         foreach (var pair in jobs)
             if (!Wanted(pair.Key) && !pair.Value.Cancellation.IsCancellationRequested)
             { pair.Value.Cancellation.Cancel(); CancelledJobs++; }
@@ -81,7 +92,7 @@ public sealed class WorldStreamer : IDisposable
         saves.UpdatePlayer(player, yaw, pitch);
         saves.Pump(options.MaxSaveCapturesPerFrame);
         if (saves.LastError is not null) LastError = saves.LastError;
-        foreach (var pair in jobs.Where(p => p.Value.Task.IsCompleted).OrderBy(p => Distance(p.Key, center)).ToArray())
+        foreach (var pair in jobs.Where(p => p.Value.Task.IsCompleted).OrderBy(p => Nearest(p.Key)).ToArray())
         {
             if (LastIntegrations >= options.MaxIntegrationsPerFrame) break;
             var job = pair.Value; jobs.Remove(pair.Key);
@@ -103,15 +114,15 @@ public sealed class WorldStreamer : IDisposable
 
         var pinned = world.FallingBlocks.Active.Where(a => a.Position.Y < 258 && world.Registries.Blocks.TryGetBlock(a.PersistentId, out _)).Select(a => ColumnCoord.FromPosition(a.Position)).ToHashSet();
         var dirtyColumns = world.Chunks.DirtyCoordinates.Select(ColumnCoord.FromChunk).ToHashSet();
-        foreach (var failed in failures.Where(p => p.Value < frame && Distance(p.Key, center) > unloadRadius).Select(p => p.Key).ToArray()) failures.Remove(failed);
+        foreach (var failed in failures.Where(p => p.Value < frame && !NearMargin(p.Key)).Select(p => p.Key).ToArray()) failures.Remove(failed);
         bool needsSave = false;
-        foreach (var column in loaded.OrderByDescending(c => Distance(c, center)).ToArray())
+        foreach (var column in loaded.OrderByDescending(c => Nearest(c)).ToArray())
         {
-            long distance = Distance(column, center);
+            long distance = Nearest(column);
             bool pressure = loaded.Count + jobs.Count >= options.MaxResidentColumns;
-            bool centerMissing = !loaded.Contains(center);
-            if (pinned.Contains(column) || column == center ||
-                (distance <= unloadRadius && !pressure) || (distance <= radiusChunks && !(pressure && centerMissing))) continue;
+            bool centerMissing = views.Keys.Any(c=>!loaded.Contains(c));
+            if (pinned.Contains(column) || views.ContainsKey(column) ||
+                (NearMargin(column) && !pressure) || (Wanted(column) && !(pressure && centerMissing))) continue;
             if (dirtyColumns.Contains(column))
             { needsSave = true; continue; }
             if (LastUnloads == options.MaxUnloadsPerFrame) continue;
@@ -121,11 +132,13 @@ public sealed class WorldStreamer : IDisposable
         { saves.Request(player, yaw, pitch); lastAutosaveTick = world.TickCount; }
 
         var wanted = new PriorityQueue<ColumnCoord, long>();
-        for (int dz = -radiusChunks; dz <= radiusChunks; dz++)
-        for (int dx = -radiusChunks; dx <= radiusChunks; dx++)
+        var enqueued=new HashSet<ColumnCoord>();
+        foreach(var view in views)
+        for (int dz = -view.Value; dz <= view.Value; dz++)
+        for (int dx = -view.Value; dx <= view.Value; dx++)
         {
-            var column = new ColumnCoord(center.X + dx, center.Z + dz);
-            if (!new ChunkCoord(column.X, 0, column.Z).IsValid || loaded.Contains(column) || jobs.ContainsKey(column) ||
+            var column = new ColumnCoord(view.Key.X + dx, view.Key.Z + dz);
+            if (!enqueued.Add(column) || !new ChunkCoord(column.X, 0, column.Z).IsValid || loaded.Contains(column) || jobs.ContainsKey(column) ||
                 failures.TryGetValue(column, out long retry) && frame < retry) continue;
             wanted.Enqueue(column, (long)dx * dx + (long)dz * dz);
         }

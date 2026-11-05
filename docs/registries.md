@@ -1,6 +1,6 @@
 # Registry와 Event API
 
-이 문서는 Phase 02에서 추가한 .NET 10 API와 v3 스냅샷을 설명한다. 엔티티·슬롯 인벤토리·제작·DLL 모드 로더의 완성을 의미하지 않는다.
+이 문서는 Phase 02에서 추가한 .NET 10 API와 v3 스냅샷을 설명한다. Phase 05의 슬롯·제작 계약은 [inventory.md](inventory.md)를 따른다. 일반 엔티티·DLL 모드 로더의 완성을 의미하지 않는다.
 
 ## 콘텐츠 ID와 등록 수명
 
@@ -10,7 +10,7 @@ Registry<T>는 Register(ContentId, value)로 등록하고 int 런타임 ID를 �
 
 GameRegistries.Create(configure)의 순서는 다음과 같다.
 
-1. 내장 블록 180개(설치 가능 178개)를 BlockRegistry에 등록한다. 공기/기반암을 제외한 블록 아이템은 Item Registry에도 등록한다.
+1. 내장 블록 181개(기존 180개와 제작대, 설치 가능 179개)를 BlockRegistry에 등록한다. 공기/기반암을 제외한 블록 아이템은 Item Registry에도 등록하고 별도 막대 아이템을 추가한다. 총 아이템은 180종이다.
 2. configure 콜백에서 추가 블록·아이템·엔티티 타입을 등록한다.
 3. Blocks, Items, EntityTypes를 모두 Freeze한다.
 4. 동결된 GameRegistries를 World 생성자에 넘긴다. 생략하면 GameRegistries.Default를 사용한다.
@@ -35,7 +35,7 @@ world.Place(new Cell(5, 5, 5), block);
 
 BlockRegistry는 등록한 BlockInfo.Id를 실제 런타임 ID로 설정한다. 예제의 Block.Air는 입력 레코드의 임시 값이며 등록 결과가 공기가 되는 것은 아니다. TextureBlock은 내장 블록의 atlas 텍스처를 재사용하는 fallback이고 유효한 내장 ID여야 한다. 확장 블록의 메타데이터는 world.Registries.Blocks.GetInfo(block)로 조회한다. BlockCatalog는 내장 콘텐츠 호환 경계이므로 다른 월드의 확장 ID 조회에 사용하지 않는다.
 
-블록 등록이 대응 아이템까지 자동 생성하지는 않는다. 필요한 아이템을 같은 문자열 ID로 별도 등록한다. ItemDefinition(Name, MaxStack)은 등록 데이터 경계다. 현재 수량 저장은 여전히 블록별 Inventory 배열이며 슬롯·스택 소비·제작은 Phase 05 범위다. EntityTypeDefinition(Name)과 EntityTypes Registry는 타입 등록 경계만 제공하고 엔티티 인스턴스·스폰·AI·저장을 구현하지 않는다.
+블록 등록이 대응 아이템까지 자동 생성하지는 않는다. 필요한 아이템을 같은 문자열 ID로 별도 등록한다. ItemDefinition(Name, MaxStack)은 등록 데이터 경계이며 MaxStack은 1–1024로 검증한다. 실제 게임의 수량은 Phase 05 슬롯·스택·제작으로 관리하고, 블록별 Inventory 배열은 호환용 총수량 뷰다. EntityTypeDefinition(Name)과 EntityTypes Registry는 타입 등록 경계만 제공하고 엔티티 인스턴스·스폰·AI·저장을 구현하지 않는다.
 
 등록은 단일 스레드에서 수행한다. 동결 후 Registry의 조회는 동시 읽기가 가능하지만 등록한 객체 자체의 내부 가변 상태까지 동기화해 주지는 않는다. 월드·이벤트·편집·저장은 시뮬레이션 소유 스레드에서 사용한다. GPU API는 계속 렌더링 스레드에서만 호출한다. DLL 검색·로드·격리 기능은 추가하지 않았다.
 
