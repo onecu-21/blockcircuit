@@ -19,6 +19,7 @@ public static class GameJson
     public static string Serialize<T>(T value,JsonSerializerOptions? options=null)=>System.Text.Json.JsonSerializer.Serialize(value,Info<T>(options));
     public static byte[] SerializeToUtf8Bytes<T>(T value,JsonSerializerOptions? options=null)=>System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(value,Info<T>(options));
     public static JsonElement SerializeToElement<T>(T value,JsonSerializerOptions? options=null)=>System.Text.Json.JsonSerializer.SerializeToElement(value,Info<T>(options));
+    public static T? Deserialize<T>(JsonElement value,JsonSerializerOptions? options=null)=>System.Text.Json.JsonSerializer.Deserialize(value,Info<T>(options));
     public static T? Deserialize<T>(string value,JsonSerializerOptions? options=null)=>System.Text.Json.JsonSerializer.Deserialize(value,Info<T>(options));
     public static T? Deserialize<T>(ReadOnlySpan<byte> value,JsonSerializerOptions? options=null)=>System.Text.Json.JsonSerializer.Deserialize(value,Info<T>(options));
 }
