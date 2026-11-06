@@ -26,7 +26,7 @@ public static class MultiplayerTests
         Console.WriteLine($"Multiplayer tests passed: {checks}");
     }
 
-    internal sealed record Probe(int Number,string Text,Vector3 Position);
+    sealed record Probe(int Number,string Text,Vector3 Position);
 
     static void TestTransport(Action<bool,string> check)
     {

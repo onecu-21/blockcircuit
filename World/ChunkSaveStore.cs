@@ -12,8 +12,8 @@ public sealed record ChunkWorldManifest(int Version, string Generation, int Seed
     Vector3 Position, float Yaw, float Pitch, Dictionary<string, int> Counts, ChunkFileReference[] Chunks)
 {
     public bool IsStreaming { get; init; }
-    public int GenerationVersion { get; set; } = 2;
-    public ColumnCoord[]? KnownColumns { get; set; } = [];
+    public int GenerationVersion { get; init; } = 2;
+    public ColumnCoord[]? KnownColumns { get; init; } = [];
     public FallingBlockSaveState? FallingBlocks { get; init; }
     public InventorySaveState? ItemInventory { get; init; }
     public Dictionary<string,NetworkPlayerSaveData>? NetworkPlayers { get; init; }

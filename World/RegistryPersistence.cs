@@ -29,12 +29,12 @@ public sealed partial class World
     public sealed record SnapshotData(int Version, string[]? Palette, int[]? Cells, Cell[]? Switches,
         Dictionary<string, int>? Counts, Vector3 Position, float Yaw, float Pitch)
     {
-        public int Seed { get; set; } = 731;
+        public int Seed { get; init; } = 731;
         public int TerrainVersion { get; init; }
         public long TickCount { get; init; }
         public bool IsStreaming { get; init; }
-        public int GenerationVersion { get; set; } = 2;
-        public ColumnCoord[]? KnownColumns { get; set; } = [];
+        public int GenerationVersion { get; init; } = 2;
+        public ColumnCoord[]? KnownColumns { get; init; } = [];
         public FallingBlockSaveState? FallingBlocks { get; init; }
         public InventorySaveState? ItemInventory { get; init; }
         public Dictionary<string,NetworkPlayerSaveData>? NetworkPlayers { get; init; }

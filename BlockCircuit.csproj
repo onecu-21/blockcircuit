@@ -6,11 +6,4 @@
     <Compile Remove="Server/**/*.cs" />
     <EmbeddedResource Include="Assets/recipes.json" LogicalName="BlockCircuit.recipes.json" />
   </ItemGroup>
-  <PropertyGroup Condition="'$(PublishAot)' == 'true'">
-    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
-  </PropertyGroup>
-  <ItemGroup Condition="'$(PublishAot)' == 'true'">
-    <TrimmerRootAssembly Include="$(AssemblyName)" />
-    <TrimmerRootAssembly Include="System.Numerics.Vectors" />
-  </ItemGroup>
 </Project>

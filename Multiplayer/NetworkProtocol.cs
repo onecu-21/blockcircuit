@@ -16,7 +16,7 @@ public sealed record NetMessage(string Type, long Sequence, JsonElement Data)
     public T Read<T>()
     {
         NetworkProtocol.Validate(this);
-        return GameJson.Deserialize<T>(Data, NetworkProtocol.JsonOptions)
+        return Data.Deserialize<T>(NetworkProtocol.JsonOptions)
             ?? throw new InvalidDataException("Missing network payload.");
     }
 }
@@ -38,8 +38,7 @@ public static class NetworkProtocol
             MaxDepth = 32,
             PropertyNameCaseInsensitive = false
         };
-        options = GameJson.Options(options);
-        options.MakeReadOnly();
+        options.MakeReadOnly(populateMissingResolver: true);
         return options;
     }
 
@@ -78,7 +77,7 @@ public static class NetworkProtocol
                 throw new InvalidDataException("Duplicate or unknown envelope field.");
         if (names.Count != 3)
             throw new InvalidDataException("Incomplete network envelope.");
-        var result = GameJson.Deserialize<NetMessage>(root, JsonOptions)
+        var result = root.Deserialize<NetMessage>(JsonOptions)
             ?? throw new InvalidDataException("Empty network envelope.");
         Validate(result);
         // JsonElement produced by Deserialize has independent lifetime from this document.

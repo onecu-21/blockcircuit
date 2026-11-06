@@ -58,16 +58,16 @@ jobs:
       matrix:
         os: [ubuntu-24.04, windows-latest]
         app: [client, server]
-        mode: [jit, aot]
+        mode: [jit]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - name: Install Linux native toolchain
+      - name: Install Linux graphics libraries
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev xvfb libgl1 libgl1-mesa-dri libx11-6 libxrandr2 libxinerama1 libxcursor1 libxi6
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1 libgl1-mesa-dri libx11-6 libxrandr2 libxinerama1 libxcursor1 libxi6
       - name: Publish and test the shipped executable
         shell: pwsh
         env:
@@ -79,8 +79,7 @@ jobs:
           $rid = if ($IsWindows) { 'win-x64' } else { 'linux-x64' }
           $project = if ($env:APP -eq 'server') { 'Server/BlockCircuit.Server.csproj' } else { 'BlockCircuit.csproj' }
           $stem = if ($env:APP -eq 'server') { 'BlockCircuit.Server' } else { 'BlockCircuit' }
-          $aot = $env:MODE -eq 'aot'
-          dotnet publish $project -c Release -r $rid --self-contained true "-p:PublishAot=$($aot.ToString().ToLower())" "-p:PublishSingleFile=$((!$aot).ToString().ToLower())" -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -o dist/publish
+          dotnet publish $project -c Release -r $rid --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -o dist/publish
           if ($LASTEXITCODE) { throw 'Publish failed' }
           $exe = Join-Path $PWD "dist/publish/$stem$(if ($IsWindows) { '.exe' })"
           # No Assets directory: prove the embedded recipes work in the delivered file.
@@ -106,7 +105,7 @@ jobs:
           New-Item dist/release -ItemType Directory -Force | Out-Null
           $asset = "BlockCircuit-$($env:APP)-$rid-$($env:MODE)$(if ($IsWindows) { '.exe' })"
           Copy-Item $exe "dist/release/$asset"
-          # AOT P/Invoke libraries remain sidecars; JIT bundles them for extraction.
+          # Include any remaining native dependencies alongside the executable.
           Get-ChildItem dist/publish -File | Where-Object { $_.Extension -in '.dll','.so' } | Copy-Item -Destination dist/release
           if ($IsWindows) { Copy-Item "$env:WINDIR/System32/vcruntime140.dll" dist/release/ }
           Get-ChildItem dist/release -File | ForEach-Object {
@@ -132,11 +131,6 @@ jobs:
           pattern: '*-*-jit'
           path: release-assets
           merge-multiple: true
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: '*-*-aot'
-          path: release-assets
-          merge-multiple: true
       - name: Publish executables directly to GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -144,6 +138,11 @@ jobs:
           cp LICENSE release-assets/LICENSE.txt
           cp licenses/*.txt release-assets/
           cp docs/RELEASE-RUNNING.md release-assets/RUNNING.md
+          latest=$(git ls-remote origin refs/heads/main | cut -f1)
+          if [ "$latest" != "$GITHUB_SHA" ]; then
+            echo "A newer main commit exists; skip publishing this build."
+            exit 0
+          fi
           gh release create "main-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}" release-assets/* \
             --target "$GITHUB_SHA" --title "BlockCircuit main build ${GITHUB_RUN_NUMBER}" \
             --notes-file docs/RELEASE-RUNNING.md

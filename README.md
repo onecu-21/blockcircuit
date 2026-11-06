@@ -226,4 +226,4 @@ Raylib는 zlib/libpng 라이선스, Raylib-cs는 zlib 라이선스로 배포됩�
 
 ## main 자동 빌드·배포
 
-[실행 파일 및 전용 서버 안내](docs/RELEASE-RUNNING.md): Linux/Windows x64, 서버/클라이언트, JIT/NativeAOT 8종을 검사하고 main의 GitHub Release에 실행 파일을 직접 등록합니다.
+[실행 파일 및 전용 서버 안내](docs/RELEASE-RUNNING.md): Linux/Windows x64, 서버/클라이언트, JIT 4종을 검사하고 main의 GitHub Release에 실행 파일을 직접 등록합니다.
