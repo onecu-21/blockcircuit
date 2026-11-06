@@ -2,4 +2,15 @@
   <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><AllowUnsafeBlocks>true</AllowUnsafeBlocks></PropertyGroup>
   <ItemGroup><PackageReference Include="Raylib-cs" Version="6.1.0" /></ItemGroup>
   <ItemGroup><Content Include="Assets/recipes.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Server/**/*.cs" />
+    <EmbeddedResource Include="Assets/recipes.json" LogicalName="BlockCircuit.recipes.json" />
+  </ItemGroup>
+  <PropertyGroup Condition="'$(PublishAot)' == 'true'">
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(PublishAot)' == 'true'">
+    <TrimmerRootAssembly Include="$(AssemblyName)" />
+    <TrimmerRootAssembly Include="System.Numerics.Vectors" />
+  </ItemGroup>
 </Project>

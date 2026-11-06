@@ -24,7 +24,7 @@ sealed partial class Game
     bool NetworkClientActive=>multiplayerClient is not null&&world.IsNetworkReplica&&soloWorld is not null;
     bool NetworkActive=>multiplayerHost is not null||NetworkClientActive;
     bool NetworkConnecting=>connectTask is not null||multiplayerClient is not null&&!multiplayerClient.Ready&&!world.IsNetworkReplica;
-    record MultiplayerProfile(Guid Identity,string Name,string Address,int Port);
+    internal record MultiplayerProfile(Guid Identity,string Name,string Address,int Port);
     NetPose LocalNetworkPose()=>new(feet,yaw,pitch,player.Flying);
     void EnsureNetworkProfile()
     {

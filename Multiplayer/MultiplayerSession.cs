@@ -21,7 +21,7 @@ public static class MultiplayerContent
         for(int i=0;i<registries.Items.Count;i++)parts.Add("I|"+registries.Items.GetId(i)+"|"+registries.Items.Get(i).MaxStack);
         for(int i=0;i<registries.EntityTypes.Count;i++)parts.Add("E|"+registries.EntityTypes.GetId(i));
         parts.Sort(StringComparer.Ordinal);
-        using var recipes=JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"Assets","recipes.json")));
+        using var recipes=JsonDocument.Parse(RecipeBook.DefaultJson());
         parts.Add(JsonSerializer.Serialize(recipes.RootElement));
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join("\n",parts))));
     }
@@ -39,6 +39,7 @@ public sealed class MultiplayerHost:IDisposable
     readonly World world;
     readonly NetListener listener;
     readonly string password,fingerprint,hostName;
+    readonly bool dedicated;
     readonly RecipeBook recipes;
     readonly int owner=Environment.CurrentManagedThreadId;
     readonly Stopwatch clock=Stopwatch.StartNew();
@@ -75,18 +76,18 @@ public sealed class MultiplayerHost:IDisposable
         public long Sequence;
         public readonly Dictionary<ChunkCoord,Stamp> Sent=[];
     }
-    public MultiplayerHost(World world,int port=25565,string password="",string hostName="Host",IPAddress? address=null)
+    public MultiplayerHost(World world,int port=25565,string password="",string hostName="Host",IPAddress? address=null,bool dedicated=false)
     {
         this.world=world??throw new ArgumentNullException(nameof(world));
         if(world.IsNetworkReplica)throw new ArgumentException("A replica cannot host a world.");
         if(!MultiplayerContent.ValidName(hostName)||password is null||password.Length>64)throw new ArgumentException("Invalid multiplayer name or password.");
-        this.password=password;this.hostName=hostName;world.EnableSlotInventory();world.ClearHistory();
+        this.password=password;this.hostName=hostName;this.dedicated=dedicated;world.EnableSlotInventory();world.ClearHistory();
         fingerprint=MultiplayerContent.Fingerprint(world.Registries);recipes=RecipeBook.LoadDefault(world.Registries.Items);
         hostPose=new(world.Spawn(),0,0);
         listener=new NetListener(address??IPAddress.Any,port,MaximumClients);
     }
     void CheckOwner(){if(Environment.CurrentManagedThreadId!=owner)throw new InvalidOperationException("Multiplayer sessions belong to their owner thread.");}
-    public bool AnyPlayerOverlaps(Cell cell)=>CollisionSystem.OverlapsPlayer(cell,hostPose.Position)||connections.Any(p=>p.Active&&CollisionSystem.OverlapsPlayer(cell,p.Pose.Position));
+    public bool AnyPlayerOverlaps(Cell cell)=>(!dedicated&&CollisionSystem.OverlapsPlayer(cell,hostPose.Position))||connections.Any(p=>p.Active&&CollisionSystem.OverlapsPlayer(cell,p.Pose.Position));
     public void Pump(NetPose localPose)
     {
         CheckOwner();ObjectDisposedException.ThrowIf(disposed,this);
@@ -168,7 +169,7 @@ public sealed class MultiplayerHost:IDisposable
             if(!MultiplayerContent.ValidPose(preferred with{Position=position})||
                 world.IsStreaming&&!world.IsCellAvailable(new((int)MathF.Floor(position.X),(int)MathF.Floor(position.Y),(int)MathF.Floor(position.Z)))||
                 CollisionSystem.Collides(world,position))return false;
-            if(Math.Abs(position.X-hostPose.Position.X)<.7f&&Math.Abs(position.Z-hostPose.Position.Z)<.7f&&Math.Abs(position.Y-hostPose.Position.Y)<1.75f)return false;
+            if(!dedicated&&Math.Abs(position.X-hostPose.Position.X)<.7f&&Math.Abs(position.Z-hostPose.Position.Z)<.7f&&Math.Abs(position.Y-hostPose.Position.Y)<1.75f)return false;
             return !connections.Any(p=>p.Active&&p.Id!=ignorePlayer&&Math.Abs(position.X-p.Pose.Position.X)<.7f&&Math.Abs(position.Z-p.Pose.Position.Z)<.7f&&Math.Abs(position.Y-p.Pose.Position.Y)<1.75f);
         }
         foreach(float radius in new[]{1.2f,2.2f,3.2f})
@@ -305,7 +306,7 @@ public sealed class MultiplayerHost:IDisposable
         }
         return sent;
     }
-    RemotePlayerState[] Roster()=>new[]{new RemotePlayerState(LocalPlayerId,hostName,hostPose.Position,hostPose.Yaw,hostPose.Pitch,hostPose.Flying)}
+    RemotePlayerState[] Roster()=>(dedicated?Array.Empty<RemotePlayerState>():new[]{new RemotePlayerState(LocalPlayerId,hostName,hostPose.Position,hostPose.Yaw,hostPose.Pitch,hostPose.Flying)})
         .Concat(connections.Where(p=>p.Active).Select(p=>new RemotePlayerState(p.Id,p.Name,p.Pose.Position,p.Pose.Yaw,p.Pose.Pitch,p.Pose.Flying))).ToArray();
     void SendState(Player p)
     {

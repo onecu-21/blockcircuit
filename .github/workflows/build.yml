@@ -1,7 +1,10 @@
 name: Build and validate
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -12,7 +15,8 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - run: dotnet build -c Release
+      - run: dotnet build BlockCircuit.csproj -c Release
+      - run: dotnet build Server/BlockCircuit.Server.csproj -c Release
       - name: Headless regression tests
         run: |
           dotnet bin/Release/net10.0/BlockCircuit.dll --self-test
@@ -47,35 +51,99 @@ jobs:
             *-preview.png
             smoke-test.png
             *-smoke-results.json
-  windows:
-    runs-on: windows-latest
+  publish:
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+        app: [client, server]
+        mode: [jit, aot]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - run: dotnet build -c Release
-      - name: Windows headless checks
-        run: |
-          dotnet bin/Release/net10.0/BlockCircuit.dll --self-test
-          dotnet bin/Release/net10.0/BlockCircuit.dll --engine-tests
-          dotnet bin/Release/net10.0/BlockCircuit.dll --gameplay-tests
-          dotnet bin/Release/net10.0/BlockCircuit.dll --terrain-tests
-          dotnet bin/Release/net10.0/BlockCircuit.dll --controls-tests
-          dotnet bin/Release/net10.0/BlockCircuit.dll --streaming-tests
-          dotnet bin/Release/net10.0/BlockCircuit.dll --inventory-tests
-          dotnet bin/Release/net10.0/BlockCircuit.dll --multiplayer-tests
-          dotnet bin/Release/net10.0/BlockCircuit.dll --startup-tests
-      - run: dotnet publish -c Release -r win-x64 --self-contained true -o dist/windows
-      - name: Include documentation and native runtime
+      - name: Install Linux native toolchain
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev xvfb libgl1 libgl1-mesa-dri libx11-6 libxrandr2 libxinerama1 libxcursor1 libxi6
+      - name: Publish and test the shipped executable
         shell: pwsh
+        env:
+          APP: ${{ matrix.app }}
+          MODE: ${{ matrix.mode }}
+          LIBGL_ALWAYS_SOFTWARE: '1'
         run: |
-          Copy-Item README.md,ENGINE-NOTES.md,GRAPHICS-TERRAIN.md,LICENSE dist/windows/
-          Copy-Item licenses dist/windows/licenses -Recurse
-          $runtime = Join-Path $env:WINDIR 'System32/vcruntime140.dll'
-          if (!(Test-Path $runtime)) { throw 'Windows VC runtime not found' }
-          Copy-Item $runtime dist/windows/
+          $ErrorActionPreference = 'Stop'
+          $rid = if ($IsWindows) { 'win-x64' } else { 'linux-x64' }
+          $project = if ($env:APP -eq 'server') { 'Server/BlockCircuit.Server.csproj' } else { 'BlockCircuit.csproj' }
+          $stem = if ($env:APP -eq 'server') { 'BlockCircuit.Server' } else { 'BlockCircuit' }
+          $aot = $env:MODE -eq 'aot'
+          dotnet publish $project -c Release -r $rid --self-contained true "-p:PublishAot=$($aot.ToString().ToLower())" "-p:PublishSingleFile=$((!$aot).ToString().ToLower())" -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -o dist/publish
+          if ($LASTEXITCODE) { throw 'Publish failed' }
+          $exe = Join-Path $PWD "dist/publish/$stem$(if ($IsWindows) { '.exe' })"
+          # No Assets directory: prove the embedded recipes work in the delivered file.
+          Remove-Item dist/publish/Assets -Recurse -Force -ErrorAction SilentlyContinue
+          $tests = if ($env:APP -eq 'server') { @('--self-test','--multiplayer-tests') } else { @('--self-test','--engine-tests','--gameplay-tests','--terrain-tests','--controls-tests','--streaming-tests','--inventory-tests','--multiplayer-tests','--startup-tests') }
+          foreach ($test in $tests) {
+            & $exe $test
+            if ($LASTEXITCODE) { throw "Published executable failed: $test" }
+          }
+          if ($env:APP -eq 'server') {
+            $world = Join-Path $env:RUNNER_TEMP "server-$($env:MODE)/world.json"
+            # Start, save, then load the same persisted world in another process.
+            1..2 | ForEach-Object {
+              & $exe --bind 127.0.0.1 --port 25565 --world $world --run-seconds 2
+              if ($LASTEXITCODE -or !(Test-Path $world)) { throw 'Server startup/save/reload failed' }
+            }
+          } elseif (!$IsWindows) {
+            foreach ($smoke in @('--smoke-test','--controls-smoke-test','--multiplayer-smoke-test','--startup-smoke-test')) {
+              xvfb-run -a $exe $smoke
+              if ($LASTEXITCODE) { throw "Published graphics failed: $smoke" }
+            }
+          }
+          New-Item dist/release -ItemType Directory -Force | Out-Null
+          $asset = "BlockCircuit-$($env:APP)-$rid-$($env:MODE)$(if ($IsWindows) { '.exe' })"
+          Copy-Item $exe "dist/release/$asset"
+          # AOT P/Invoke libraries remain sidecars; JIT bundles them for extraction.
+          Get-ChildItem dist/publish -File | Where-Object { $_.Extension -in '.dll','.so' } | Copy-Item -Destination dist/release
+          if ($IsWindows) { Copy-Item "$env:WINDIR/System32/vcruntime140.dll" dist/release/ }
+          Get-ChildItem dist/release -File | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            "$hash  $($_.Name)" | Add-Content "dist/release/$asset.sha256"
+          }
       - uses: actions/upload-artifact@v4
         with:
-          name: BlockCircuit-windows-x64
-          path: dist/windows/
+          name: ${{ matrix.app }}-${{ runner.os }}-${{ matrix.mode }}
+          path: dist/release/*
+          if-no-files-found: error
+          retention-days: 7
+  release:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: publish
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: '*-*-jit'
+          path: release-assets
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: '*-*-aot'
+          path: release-assets
+          merge-multiple: true
+      - name: Publish executables directly to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp LICENSE release-assets/LICENSE.txt
+          cp licenses/*.txt release-assets/
+          cp docs/RELEASE-RUNNING.md release-assets/RUNNING.md
+          gh release create "main-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}" release-assets/* \
+            --target "$GITHUB_SHA" --title "BlockCircuit main build ${GITHUB_RUN_NUMBER}" \
+            --notes-file docs/RELEASE-RUNNING.md

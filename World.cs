@@ -338,7 +338,7 @@ public sealed partial class World
 
     public record SaveData(int Version, byte[]? Blocks, Cell[]? Switches, int[]? Inventory, Vector3 Position, float Yaw, float Pitch)
     {
-        public int Seed { get; init; } = 731;
+        public int Seed { get; set; } = 731;
         public int TerrainVersion { get; init; }
     }
     private static readonly JsonSerializerOptions JsonOptions = new() { IncludeFields = true };

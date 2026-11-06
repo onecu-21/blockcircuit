@@ -38,7 +38,8 @@ public static class NetworkProtocol
             MaxDepth = 32,
             PropertyNameCaseInsensitive = false
         };
-        options.MakeReadOnly(populateMissingResolver: true);
+        options = GameJson.Options(options);
+        options.MakeReadOnly();
         return options;
     }
 

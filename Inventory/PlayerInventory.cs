@@ -182,7 +182,7 @@ public sealed class PlayerInventory
     internal void CommitCraft(PlayerInventory candidate){CopyFrom(candidate.Capture());}
     public PlayerInventoryState Capture()=>new(slots.Select(Data).ToArray(),craft2.Select(Data).ToArray(),craft3.Select(Data).ToArray(),Data(Cursor),new(reserve,StringComparer.Ordinal));
     static StackData? Data(ItemStack? stack)=>stack is null?null:new(stack.Id.ToString(),stack.Count);
-    public bool Matches(PlayerInventoryState state)=>System.Text.Json.JsonSerializer.Serialize(Capture())==System.Text.Json.JsonSerializer.Serialize(state);
+    public bool Matches(PlayerInventoryState state)=>GameJson.Serialize(Capture())==GameJson.Serialize(state);
     internal void CopyFrom(PlayerInventoryState state)
     {
         var other=Restore(registry,state);

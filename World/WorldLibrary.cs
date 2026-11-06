@@ -17,7 +17,7 @@ public sealed class WorldLibrary
     readonly GameRegistries registries;
     readonly string dataRoot,worldsRoot,trashRoot;
     readonly StringComparison comparison=OperatingSystem.IsWindows()?StringComparison.OrdinalIgnoreCase:StringComparison.Ordinal;
-    sealed record Info(int Version,Guid Id,string Name,int? Seed,bool Classic,DateTime CreatedUtc,DateTime LastPlayedUtc,bool Legacy);
+    internal sealed record Info(int Version,Guid Id,string Name,int? Seed,bool Classic,DateTime CreatedUtc,DateTime LastPlayedUtc,bool Legacy);
     public string DataRoot=>dataRoot;
     public WorldLibrary(string dataRoot,GameRegistries? registries=null)
     {

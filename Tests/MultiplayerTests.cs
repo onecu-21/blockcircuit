@@ -15,12 +15,18 @@ public static class MultiplayerTests
     {
         int checks=0;
         void Check(bool value,string message){if(!value)throw new InvalidOperationException(message);Console.WriteLine("PASS: "+message);checks++;}
+        var dedicatedWorld=new World();
+        using(var dedicated=new MultiplayerHost(dedicatedWorld,0,address:IPAddress.Loopback,dedicated:true)){
+            dedicated.Pump(new(dedicatedWorld.Spawn(),0,0));
+            Check(dedicated.Players.Count==0,"dedicated server has no phantom local player");
+            Check(!dedicated.AnyPlayerOverlaps(new(20,10,23)),"dedicated spawn anchor does not block construction");
+        }
         TestTransport(Check);
         TestSessions(Check);
         Console.WriteLine($"Multiplayer tests passed: {checks}");
     }
 
-    sealed record Probe(int Number,string Text,Vector3 Position);
+    internal sealed record Probe(int Number,string Text,Vector3 Position);
 
     static void TestTransport(Action<bool,string> check)
     {

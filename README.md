@@ -223,3 +223,7 @@ python3 package.py
 패키징 전에 위의 세 기본 미리보기 명령을 실행하세요. `package.py`는 상위 폴더에 `BlockCircuit-windows-x64.zip`과 `BlockCircuit-source.zip`을 만들고 ZIP 무결성을 확인합니다. Windows ZIP에는 실행에 필요한 .NET 런타임, README, 엔진 노트와 라이선스가 포함됩니다. 소스 ZIP에는 Assets/recipes.json을 포함한 콘텐츠 자원과 하위 폴더의 모든 C# 소스, 프로젝트 파일, 설명서, 패키징 스크립트, 라이선스와 미리보기 이미지가 포함됩니다. 존재하는 측정 JSON도 두 ZIP에 함께 포함하고, `engine-preview.png`·`gameplay-preview.png`·`terrain-preview.png`·`controls-preview.png`는 소스 ZIP에 추가합니다. `bin/`, `obj/`, `dist/`의 소스 파일은 제외합니다.
 
 Raylib는 zlib/libpng 라이선스, Raylib-cs는 zlib 라이선스로 배포됩니다. 라이선스 전문은 `licenses/`에 있고, 코드의 종속성은 프로젝트 파일에 명시되어 있습니다.
+
+## main 자동 빌드·배포
+
+[실행 파일 및 전용 서버 안내](docs/RELEASE-RUNNING.md): Linux/Windows x64, 서버/클라이언트, JIT/NativeAOT 8종을 검사하고 main의 GitHub Release에 실행 파일을 직접 등록합니다.

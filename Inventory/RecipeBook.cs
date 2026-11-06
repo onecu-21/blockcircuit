@@ -9,7 +9,15 @@ public sealed class RecipeBook
     readonly List<Recipe> recipes=[];
     public int Count=>recipes.Count;
     RecipeBook(ItemRegistry items){this.items=items;}
-    public static RecipeBook LoadDefault(ItemRegistry items)=>LoadJson(items,File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"Assets","recipes.json")));
+    public static RecipeBook LoadDefault(ItemRegistry items)=>LoadJson(items,DefaultJson());
+    public static string DefaultJson()
+    {
+        string path=Path.Combine(AppContext.BaseDirectory,"Assets","recipes.json");
+        if(File.Exists(path))return File.ReadAllText(path);
+        using var stream=typeof(RecipeBook).Assembly.GetManifestResourceStream("BlockCircuit.recipes.json")
+            ??throw new InvalidOperationException("Embedded recipes are missing.");
+        using var reader=new StreamReader(stream);return reader.ReadToEnd();
+    }
     public static RecipeBook LoadJson(ItemRegistry items,string json)
     {
         if(json.Length>1024*1024)throw new InvalidDataException("Recipe file exceeds 1 MiB.");
